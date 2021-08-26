@@ -28,6 +28,12 @@
 			<artifactId>datafrk-postgres</artifactId>
 			<version>${datafrk.version}</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>io.github.kubesys</groupId>
+			<artifactId>datafrk-mysql</artifactId>
+			<version>${datafrk.version}</version>
+		</dependency>
 	</dependencies>
 
 	<repositories>

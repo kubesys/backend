@@ -4,15 +4,20 @@
  */
 package io.github.kubesys.backend;
 
+import java.lang.reflect.Constructor;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
+import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.github.kubesys.datafrk.core.DataContext;
 import io.github.kubesys.datafrk.core.operators.QueryData;
 import io.github.kubesys.datafrk.druid.DruidDataContext;
 import io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase;
@@ -27,25 +32,14 @@ import io.github.kubesys.datafrk.postgres.operators.UpdatePostgresDataBuilder;
 
 /**
  * @author wuheng@iscas.ac.cn
- * @since 2.0.0
+ * @since 2.0.1
  *
  */
-public class KubeSQLClient {
+public class SQLMapper {
 
 	public static final String CREATE_POSTGRE_TABLE    = "CREATE TABLE #TABLE# (name varchar(512), namespace varchar(128), apigroup varchar(128), created timestamp, updated timestamp, "
 			+ "data json, primary key(name, namespace, apigroup))";
 	
-	public static final String LABEL_NAME      = "name";
-	
-	public static final String LABEL_NAMESPACE = "namespace";
-	
-	public static final String LABEL_APIGROUP  = "apigroup";
-	
-	public static final String LABEL_CREATED   = "created";
-	
-	public static final String LABEL_UPDATED   = "updated";
-	
-	public static final String LABEL_DATA      = "data";
 	
 	private static final String SELECT                 = "SELECT #TARGET# FROM #TABLE#";
 
@@ -61,15 +55,126 @@ public class KubeSQLClient {
 
 	private static final String POSTGRE_LIMIT          = " LIMIT #LIMIT# OFFSET #OFFSET#";
 	
-	protected final DruidDataContext context;
 	
-	public KubeSQLClient(DruidDataContext context) {
+	
+	public static final Logger m_logger = Logger.getLogger(SQLMapper.class.getName());
+
+	public static final Map<String, Map<String,String>> DEF_VALUES = new HashMap<>();
+	
+	public static final Map<String, String> DEF_POSTGRES_VALUES    = new HashMap<>();
+	
+	public static final Map<String, String> DEF_MYSQL_VALUES       = new HashMap<>();
+
+	public static final String DEFAULT_POSTGRES_TYPE               = "postgres";
+	
+	public static final String DEFAULT_MYSQL_TYPE                  = "mysql";
+	
+	public static final String LABEL_NAME                          = "name";
+	
+	public static final String LABEL_NAMESPACE                     = "namespace";
+	
+	public static final String LABEL_APIGROUP                      = "apigroup";
+	
+	public static final String LABEL_CREATED                       = "created";
+	
+	public static final String LABEL_UPDATED                       = "updated";
+	
+	public static final String LABEL_DATA                          = "data";
+	
+	public static final String DATABASE_TYPE                       = System.getenv("jdbcType") != null ? System.getenv("jdbcType") : DEFAULT_POSTGRES_TYPE;
+	
+	static {
+		DEF_POSTGRES_VALUES.put("driver", "org.postgresql.Driver");
+		DEF_POSTGRES_VALUES.put("prefix", "jdbc:postgresql://");
+		DEF_POSTGRES_VALUES.put("host", "kube-database.kube-system");
+		DEF_POSTGRES_VALUES.put("port", "5432");
+		DEF_POSTGRES_VALUES.put("db", "postgres");
+		DEF_POSTGRES_VALUES.put("user", "postgres");
+		DEF_POSTGRES_VALUES.put("pwd", "onceas");
+		DEF_POSTGRES_VALUES.put("classname", "io.github.kubesys.datafrk.postgres.PostgresDataContext");
+		
+		DEF_MYSQL_VALUES.put("driver", "com.mysql.cj.jdbc.Driver");
+		DEF_MYSQL_VALUES.put("prefix", "jdbc:mysql://");
+		DEF_MYSQL_VALUES.put("host", "kube-database.kube-system");
+		DEF_MYSQL_VALUES.put("port", "3306");
+		DEF_MYSQL_VALUES.put("db", "mysql");
+		DEF_MYSQL_VALUES.put("user", "root");
+		DEF_MYSQL_VALUES.put("pwd", "onceas");
+		DEF_MYSQL_VALUES.put("classname", "io.github.kubesys.datafrk.mysql.MysqlDataContext");
+		
+		DEF_VALUES.put(DEFAULT_POSTGRES_TYPE, DEF_POSTGRES_VALUES);
+		DEF_VALUES.put(DEFAULT_MYSQL_TYPE, DEF_MYSQL_VALUES);
+	}
+	
+	protected final DataContext context;
+	
+	
+	public SQLMapper() {
+		this.context = createDataContext();
+	}
+	
+	public SQLMapper(DruidDataContext context) {
 		super();
 		this.context = context;
 	}
 
 	public void close() throws Exception {
 		this.context.currentDatabase().close();
+	}
+
+	/****************************************************************************
+	 * 
+	 * 
+	 *                         Init DataContext
+	 * 
+	 * 
+	 *****************************************************************************/
+	
+	private DataContext createDataContext() {
+		try {
+			Class<?> clz = Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("classname"));
+			Constructor<?> c = clz.getConstructor(Properties.class);
+			return (DataContext) c.newInstance(createProperties());
+		} catch (Exception ex) {
+			m_logger.severe(ex.toString());
+			return null;
+		}
+	}
+	
+	private Properties createProperties() {
+		Properties props = new Properties();
+		props.put("druid.driverClassName", getDriver()); 
+		props.put("druid.url", getUrl());
+		props.put("druid.username",getUser()); 
+		props.put("druid.password", getPassword());
+		props.put("druid.initialSize", 10); 
+		props.put("druid.maxActive", 100);
+		props.put("druid.maxWait", 0);
+		return props;
+	}
+	
+	private String getDriver() {
+		return getValue(System.getenv("jdbcDriver"), DEF_VALUES.get(DATABASE_TYPE).get("driver"));
+	}
+	
+	private String getUrl() {
+		return DEF_VALUES.get(DATABASE_TYPE).get("prefix") 
+				+ getValue(System.getenv("jdbcHost"), DEF_VALUES.get(DATABASE_TYPE).get("host")) + ":"
+				+ getValue(System.getenv("jdbcPort"), DEF_VALUES.get(DATABASE_TYPE).get("port")) + "/"
+				+ getValue(System.getenv("jdbcDB"), DEF_VALUES.get(DATABASE_TYPE).get("db")) 
+				+ "?useUnicode=true&characterEncoding=UTF8&connectTimeout=2000&socketTimeout=6000&autoReconnect=true&&serverTimezone=Asia/Shang";
+	}
+	
+	private String getUser() {
+		return getValue(System.getenv("jdbcUser"), DEF_VALUES.get(DATABASE_TYPE).get("user"));
+	}
+	
+	private String getPassword() {
+		return getValue(System.getenv("jdbcPassword"), DEF_VALUES.get(DATABASE_TYPE).get("pwd"));
+	}
+	
+	private String getValue(String inputValue, String defValue) {
+		return (inputValue == null) ? defValue : inputValue;
 	}
 	
 	/****************************************************************************
