@@ -6,7 +6,6 @@ package io.github.kubesys.backend;
 
 import java.lang.reflect.Constructor;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -18,10 +17,12 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.kubesys.datafrk.core.DataContext;
+import io.github.kubesys.datafrk.core.Table;
 import io.github.kubesys.datafrk.core.items.ItemTypeBuilder;
 import io.github.kubesys.datafrk.core.operators.CreateTable;
 import io.github.kubesys.datafrk.core.operators.CreateTableBuilder;
 import io.github.kubesys.datafrk.core.operators.QueryData;
+import io.github.kubesys.datafrk.core.operators.QueryDataBuilder;
 import io.github.kubesys.datafrk.druid.DruidDataContext;
 import io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase;
 import io.github.kubesys.datafrk.postgres.operators.CheckPostgresTable;
@@ -43,11 +44,6 @@ public class SQLMapper {
 
 	private static final String WHERE                  = " WHERE ";
 
-	private static final String TARGET_DATA            = "*";
-
-	private static final String TARGET_COUNT           = "count(*) as count";
-	
-	private static final String METADATA               = "metadata";
 	
 	private static final String POSTGRE_CONDITION      = " data#ITEM# like '%#VALUE#%' AND ";
 
@@ -90,6 +86,7 @@ public class SQLMapper {
 		DEF_POSTGRES_VALUES.put("pwd", "onceas");
 		DEF_POSTGRES_VALUES.put("classname", "io.github.kubesys.datafrk.postgres.PostgresDataContext");
 		DEF_POSTGRES_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresTableBuilder");
+		DEF_POSTGRES_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.postgres.operators.QueryPostgresDataBuilder");
 		
 		DEF_MYSQL_VALUES.put("driver", "com.mysql.cj.jdbc.Driver");
 		DEF_MYSQL_VALUES.put("prefix", "jdbc:mysql://");
@@ -100,6 +97,7 @@ public class SQLMapper {
 		DEF_MYSQL_VALUES.put("pwd", "onceas");
 		DEF_MYSQL_VALUES.put("classname", "io.github.kubesys.datafrk.mysql.MysqlDataContext");
 		DEF_MYSQL_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.mysql.operators.CreateMysqlTableBuilder");
+		DEF_MYSQL_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.mysql.operators.QueryMysqlDataBuilder");
 		
 		DEF_VALUES.put(DEFAULT_POSTGRES_TYPE, DEF_POSTGRES_VALUES);
 		DEF_VALUES.put(DEFAULT_MYSQL_TYPE, DEF_MYSQL_VALUES);
@@ -301,23 +299,35 @@ public class SQLMapper {
 	
 	private ObjectNode getResults(String table, String kind, int limit, int page, StringBuilder sqlBase) throws Exception {
 		
+		Table<?> thisTable = context.currentDatabase().get(table);
 		ObjectNode node = new ObjectMapper().createObjectNode();
 		node.put("kind", kind + "List");
 		node.put("apiVersion", "v1");
 		ObjectNode meta = new ObjectMapper().createObjectNode();
 		{
-			meta.put("totalCount", getRows(table, sqlBase));
+			String classname = DEF_VALUES.get(DATABASE_TYPE).get("queryBuilder");
+			meta.put("totalCount", getCount(table, thisTable, classname));
 			meta.put("continue", String.valueOf(page + 1));
 		}
-		node.set(METADATA, meta);
+		node.set("metadata", meta);
 		node.set("items", getItems(table, limit, page, sqlBase));
 		return node;
+	}
+
+	@SuppressWarnings("unchecked")
+	private int getCount(String table, Table<?> thisTable, String classname) throws Exception {
+		QueryDataBuilder<?, QueryData> qdb = (QueryDataBuilder<?, QueryData>) Class.forName(classname).newInstance();
+		qdb = (QueryDataBuilder<?, QueryData>) qdb.selectCount(table);
+		QueryData queryData = qdb.build();
+		ResultSet rs = (ResultSet) thisTable.query(new QueryData(queryData.toSQL()));
+		rs.next();
+		return rs.getInt("count");
 	}
 	
 	private ArrayNode getItems(String table, int limit, int page, StringBuilder sqlBase) throws Exception {
 		
 		sqlBase.append(" order by updated desc ").append(queryLimit(limit, page));
-		String dataSql = sqlBase.toString().replace("#TARGET#", TARGET_DATA);
+		String dataSql = sqlBase.toString().replace("#TARGET#", "*");
 		ResultSet rsd = (ResultSet) context.currentDatabase().get(table).query(new QueryData(dataSql));
 		ArrayNode items = new ObjectMapper().createArrayNode();
 		
@@ -326,17 +336,6 @@ public class SQLMapper {
 		}
 		rsd.close();
 		return items;
-	}
-
-	private int getRows(String table, StringBuilder sqlBase) throws Exception, SQLException {
-		ResultSet rsc = (ResultSet) context.currentDatabase().get(table).query(
-				new QueryData(sqlBase.toString().replace("#TARGET#", TARGET_COUNT)));
-				
-		rsc.next();
-		
-		int total = rsc.getInt("count");
-		rsc.close();
-		return total;
 	}
 
 	private StringBuilder createSqlBase(String table, Map<String, String> labels) {
