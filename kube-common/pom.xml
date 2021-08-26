@@ -13,7 +13,7 @@
 
 	<properties>
 		<kubeclient.version>2.0.4</kubeclient.version>
-		<datafrk.version>2.0.1</datafrk.version>
+		<datafrk.version>2.0.2</datafrk.version>
 	</properties>
 
 	<dependencies>

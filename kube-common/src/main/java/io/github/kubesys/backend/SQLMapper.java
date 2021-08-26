@@ -18,12 +18,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.kubesys.datafrk.core.DataContext;
+import io.github.kubesys.datafrk.core.items.ItemTypeBuilder;
+import io.github.kubesys.datafrk.core.operators.CreateTable;
+import io.github.kubesys.datafrk.core.operators.CreateTableBuilder;
 import io.github.kubesys.datafrk.core.operators.QueryData;
 import io.github.kubesys.datafrk.druid.DruidDataContext;
 import io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase;
 import io.github.kubesys.datafrk.postgres.operators.CheckPostgresTable;
 import io.github.kubesys.datafrk.postgres.operators.CreatePostgresDatabase;
-import io.github.kubesys.datafrk.postgres.operators.CreatePostgresTableBuilder;
 import io.github.kubesys.datafrk.postgres.operators.DropPostgresDatabase;
 import io.github.kubesys.datafrk.postgres.operators.DropPostgresTable;
 import io.github.kubesys.datafrk.postgres.operators.InsertPostgresDataBuilder;
@@ -37,10 +39,6 @@ import io.github.kubesys.datafrk.postgres.operators.UpdatePostgresDataBuilder;
  */
 public class SQLMapper {
 
-	public static final String CREATE_POSTGRE_TABLE    = "CREATE TABLE #TABLE# (name varchar(512), namespace varchar(128), apigroup varchar(128), created timestamp, updated timestamp, "
-			+ "data json, primary key(name, namespace, apigroup))";
-	
-	
 	private static final String SELECT                 = "SELECT #TARGET# FROM #TABLE#";
 
 	private static final String WHERE                  = " WHERE ";
@@ -54,7 +52,6 @@ public class SQLMapper {
 	private static final String POSTGRE_CONDITION      = " data#ITEM# like '%#VALUE#%' AND ";
 
 	private static final String POSTGRE_LIMIT          = " LIMIT #LIMIT# OFFSET #OFFSET#";
-	
 	
 	
 	public static final Logger m_logger = Logger.getLogger(SQLMapper.class.getName());
@@ -92,6 +89,7 @@ public class SQLMapper {
 		DEF_POSTGRES_VALUES.put("user", "postgres");
 		DEF_POSTGRES_VALUES.put("pwd", "onceas");
 		DEF_POSTGRES_VALUES.put("classname", "io.github.kubesys.datafrk.postgres.PostgresDataContext");
+		DEF_POSTGRES_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresTableBuilder");
 		
 		DEF_MYSQL_VALUES.put("driver", "com.mysql.cj.jdbc.Driver");
 		DEF_MYSQL_VALUES.put("prefix", "jdbc:mysql://");
@@ -101,6 +99,7 @@ public class SQLMapper {
 		DEF_MYSQL_VALUES.put("user", "root");
 		DEF_MYSQL_VALUES.put("pwd", "onceas");
 		DEF_MYSQL_VALUES.put("classname", "io.github.kubesys.datafrk.mysql.MysqlDataContext");
+		DEF_MYSQL_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.mysql.operators.CreateMysqlTableBuilder");
 		
 		DEF_VALUES.put(DEFAULT_POSTGRES_TYPE, DEF_POSTGRES_VALUES);
 		DEF_VALUES.put(DEFAULT_MYSQL_TYPE, DEF_MYSQL_VALUES);
@@ -264,9 +263,19 @@ public class SQLMapper {
 		return context.checkDababase(new CheckPostgresDatabase(db));
 	}
 	
+	@SuppressWarnings("unchecked")
 	public boolean createTable(String table) throws Exception {
-		return context.currentDatabase().createTable(new CreatePostgresTableBuilder()
-				.sql(CREATE_POSTGRE_TABLE.replace("#TABLE#", table)).build());
+		CreateTableBuilder<?, CreateTable> tableBuilder = (CreateTableBuilder<?, CreateTable>) Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("tableBuilder")).newInstance();
+		ItemTypeBuilder typeBuilder =  tableBuilder.getTypeBuilder();
+		tableBuilder = (CreateTableBuilder<?, CreateTable>) tableBuilder.createTable(table);
+		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("name",      typeBuilder.varchar(512), true);
+		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("namespace", typeBuilder.varchar(128), true);
+		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("apigroup",  typeBuilder.varchar(128), true);
+		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("created",   typeBuilder.datatime());
+		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("updated",   typeBuilder.datatime());
+		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("data",      typeBuilder.json());							
+		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.endCreate();						
+		return context.currentDatabase().createTable(tableBuilder.build());
 	}
 
 	public boolean dropTable(String table) {
