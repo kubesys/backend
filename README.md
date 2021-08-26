@@ -21,3 +21,8 @@ Otherwise, you need deploy ApiMapper, Database and MessageQueue together,
 and deploy a RuntimMirror component for each Kubernetes cluster.
 
 ![avatar](/docs/arch-mutiple.png)
+
+## Roadmap
+
+- 2.0.x: support MQ
+  - 2.0.1: merge codes from [kubernetes-mirror](https://github.com/syswu/kubernetes-mirror) and [kubernetes-api-mapper](https://github.com/syswu/kubernetes-api-mapper) 
