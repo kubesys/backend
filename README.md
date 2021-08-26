@@ -1,22 +1,11 @@
 ## kube-backend
-providing unified API to manage mutiple Kubernetes clusters, we plan to support
 
-- SQL
-  - Mysql/MariaDB
-  - PostgresSQL
-  - Sqlite
-- NoSQL
-  - Key-value
-    - Redis
-    - Memcached
-  - Table-oriented
-    - Cassandra
-    - HBase
-  - Document-oriented
-    - MongDB
-    - CouchDB
-- NewSQL
-  - CockroachDB
+Providing unified API to manage mutiple Kubernetes clusters:
+
+- RuntimeMirror: extract all objects during runtime by Kubernetes' 'watch' API, then write to a database and publish to a MQ using the JSON style.
+- ApiMapper: define an unified API <clusterId, operator, json>, the operators include create, update, delete, list, get
+  - create/update/delete: invoking Kubernetes apiserver directly
+  - query/get: access to the database using SQL  
 
 ## Authos
 
