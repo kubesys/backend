@@ -8,13 +8,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.github.kubesys.datafrk.postgres.PostgresDataContext;
 import io.github.kubesys.kubeclient.KubernetesCRDWacther;
 import io.github.kubesys.kubeclient.KubernetesClient;
 import io.github.kubesys.kubeclient.KubernetesConstants;
@@ -39,14 +37,9 @@ public class KubeMirror {
 	public Set<String> sources = new HashSet<>();
 
 	/**
-	 * kube client
-	 */
-	protected final KubernetesClient kubeClient;
-
-	/**
 	 * sql client
 	 */
-	protected final KubeSQLClient sqlClient;
+	protected final SQLMapper sqlMapper;
 	
 	
 	/**
@@ -54,48 +47,26 @@ public class KubeMirror {
 	 */
 	protected final Map<String, Thread> watchers = new HashMap<>();
 	
-	public KubeMirror(KubernetesClient client) throws Exception {
-		Properties props = new Properties();
-		props.put("druid.driverClassName", System.getenv("jdbcDriver")); 
-		props.put("druid.url", System.getenv("jdbcUrl")); 
-		props.put("druid.username", System.getenv("jdbcUser")); 
-		props.put("druid.password", System.getenv("jdbcPassword"));
-		props.put("druid.initialSize", 10); 
-		props.put("druid.maxActive", 100);
-		props.put("druid.maxWait", 0);
-		
-		KubeSQLClient sqlTempClient = new KubeSQLClient(new PostgresDataContext(props));
-		
-		String db = System.getenv("jdbcDB");
-		if (!sqlTempClient.checkDatabase(db)) {
-			sqlTempClient.createDatbase(db);
-		}
-		sqlTempClient.close();
-		
-		props.put("druid.url", realUrl(System.getenv("jdbcUrl"), db)); 
-		this.sqlClient = new KubeSQLClient(new PostgresDataContext(props));
-		
-		this.kubeClient = client;
-	}
-
-	private String realUrl(String oldUrl, String database) {
-		int stx = oldUrl.indexOf("/", getUrlPrefix().length());
-		int etx = oldUrl.indexOf("?");
-		return (etx == - 1) ? oldUrl.substring(0, stx + 1) + database :
-				oldUrl.substring(0, stx + 1) + database + oldUrl.substring(etx);
-	}
-
-	private String getUrlPrefix() {
-		return "jdbc:postgresql://";
-	}
+	/****************************************************************************
+	 * 
+	 * 
+	 *                         Insert, Update, Delete objects
+	 * 
+	 * 
+	 *****************************************************************************/
 	
+	public KubeMirror(KubernetesClient kubeClient) throws Exception {
+		this.sqlMapper = new SQLMapper(kubeClient);	
+	}
+
+
 	/**
 	 * @return                               mirror
 	 * @throws Exception                     exception
 	 */
 	public KubeMirror fromSources() throws Exception {
 		try {
-			for (String kind : kubeClient.getAnalyzer().getConvertor()
+			for (String kind : sqlMapper.getKubeClient().getAnalyzer().getConvertor()
 						.getRuleBase().getApiPrefixMapping().keySet()) {
 				this.sources.add(kind);
 			}
@@ -175,7 +146,7 @@ public class KubeMirror {
 	 */
 	protected void doWatcher(String kind) throws Exception {
 		
-		KubernetesRuleBase ruleBase = kubeClient.getAnalyzer().getConvertor().getRuleBase();
+		KubernetesRuleBase ruleBase = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase();
 		String table = ruleBase.getName(kind);
 
 		if (table.contains("/") || table.contains("-")) {
@@ -183,19 +154,20 @@ public class KubeMirror {
 		}
 		
 		deleteTableIfExit(table);
-		sqlClient.createTable(table);
+		sqlMapper.createTable(table);
 
 		m_logger.info("fullname is " + kind);
 		SourceToSink watcher = new SourceToSink(kind, table, this);
-		watchers.put(table, kubeClient.watchResources(kind, watcher));
+		watchers.put(table, sqlMapper.getKubeClient().watchResources(kind, watcher));
 	}
 
 	/**
 	 * @param table                   table
+	 * @throws Exception              exception
 	 */
-	protected void deleteTableIfExit(String table) {
-		if (sqlClient.checkTable(table)) {
-			sqlClient.dropTable(table);
+	protected void deleteTableIfExit(String table) throws Exception {
+		if (sqlMapper.checkTable(table)) {
+			sqlMapper.dropTable(table);
 		}
 	}
 	
@@ -205,9 +177,9 @@ public class KubeMirror {
 	 */
 	@SuppressWarnings("deprecation")
 	protected void stopWatcher(String kind) throws Exception {
-		String table = kubeClient.getAnalyzer().getConvertor().getRuleBase().getName(kind);
-		if (sqlClient.checkTable(table)) {
-			sqlClient.dropTable(table);
+		String table = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase().getName(kind);
+		if (sqlMapper.checkTable(table)) {
+			sqlMapper.dropTable(table);
 		} 
 		watchers.get(table).stop();
 		watchers.remove(table);
@@ -236,16 +208,16 @@ public class KubeMirror {
 	}
 
 	public boolean beenWatched(String kind) {
-		String table = kubeClient.getAnalyzer().getConvertor().getRuleBase().getName(kind);
+		String table = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase().getName(kind);
 		return watchers.containsKey(table);
 	}
 
 	public KubernetesClient getKubeClient() {
-		return kubeClient;
+		return sqlMapper.getKubeClient();
 	}
 
-	public KubeSQLClient getSqlClient() {
-		return sqlClient;
+	public SQLMapper getSqlClient() {
+		return sqlMapper;
 	}
 	
 	
