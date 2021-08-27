@@ -3,9 +3,17 @@
 Providing unified API to manage mutiple Kubernetes clusters:
 
 - RuntimeMirror: extract all objects during runtime by Kubernetes' 'watch' API, then write to a database and publish to a MQ using the JSON style.
-- ApiMapper: define an unified API <clusterId, operator, json>, the operators include create, update, delete, list, get
+- ApiMapper: define an unified APIs <clusterId, operator, json>, which include create, update, delete, list, get
   - create/update/delete: invoking Kubernetes apiserver directly
   - query/get: access to the database using SQL  
+
+This project is based on the following softwares.
+
+|               NAME            |   Website                       |      LICENSE              | 
+|-------------------------------|---------------------------------|---------------------------|
+|     datafrk                   |  https://github.com/kubesys/datafrk              |  Apache License 2.0 |
+|     alibaba druid             |  https://github.com/alibaba/druid                |  Apache License 2.0 |
+
 
 ## Authos
 
