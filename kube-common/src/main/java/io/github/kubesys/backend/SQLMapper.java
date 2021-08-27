@@ -17,22 +17,22 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.kubesys.datafrk.core.DataContext;
-import io.github.kubesys.datafrk.core.Table;
 import io.github.kubesys.datafrk.core.items.ItemTypeBuilder;
 import io.github.kubesys.datafrk.core.operators.CheckDatabase;
+import io.github.kubesys.datafrk.core.operators.CheckTable;
 import io.github.kubesys.datafrk.core.operators.CreateDatabase;
 import io.github.kubesys.datafrk.core.operators.CreateTable;
 import io.github.kubesys.datafrk.core.operators.CreateTableBuilder;
+import io.github.kubesys.datafrk.core.operators.DropDatabase;
+import io.github.kubesys.datafrk.core.operators.DropTable;
+import io.github.kubesys.datafrk.core.operators.InsertData;
+import io.github.kubesys.datafrk.core.operators.InsertDataBuilder;
 import io.github.kubesys.datafrk.core.operators.QueryData;
 import io.github.kubesys.datafrk.core.operators.QueryDataBuilder;
-import io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase;
-import io.github.kubesys.datafrk.postgres.operators.CheckPostgresTable;
-import io.github.kubesys.datafrk.postgres.operators.CreatePostgresDatabase;
-import io.github.kubesys.datafrk.postgres.operators.DropPostgresDatabase;
-import io.github.kubesys.datafrk.postgres.operators.DropPostgresTable;
-import io.github.kubesys.datafrk.postgres.operators.InsertPostgresDataBuilder;
-import io.github.kubesys.datafrk.postgres.operators.RemovePostgresDataBuilder;
-import io.github.kubesys.datafrk.postgres.operators.UpdatePostgresDataBuilder;
+import io.github.kubesys.datafrk.core.operators.RemoveData;
+import io.github.kubesys.datafrk.core.operators.RemoveDataBuilder;
+import io.github.kubesys.datafrk.core.operators.UpdateData;
+import io.github.kubesys.datafrk.core.operators.UpdateDataBuilder;
 import io.github.kubesys.kubeclient.KubernetesClient;
 
 /**
@@ -42,15 +42,6 @@ import io.github.kubesys.kubeclient.KubernetesClient;
  */
 public class SQLMapper {
 
-	private static final String SELECT                 = "SELECT #TARGET# FROM #TABLE#";
-
-	private static final String WHERE                  = " WHERE ";
-
-	
-	private static final String POSTGRE_CONDITION      = " data#ITEM# like '%#VALUE#%' AND ";
-
-	private static final String POSTGRE_LIMIT          = " LIMIT #LIMIT# OFFSET #OFFSET#";
-	
 	public static final Logger m_logger = Logger.getLogger(SQLMapper.class.getName());
 
 	public static final Map<String, Map<String,String>> DEF_VALUES = new HashMap<>();
@@ -62,18 +53,6 @@ public class SQLMapper {
 	public static final String DEFAULT_POSTGRES_TYPE               = "postgres";
 	
 	public static final String DEFAULT_MYSQL_TYPE                  = "mysql";
-	
-	public static final String LABEL_NAME                          = "name";
-	
-	public static final String LABEL_NAMESPACE                     = "namespace";
-	
-	public static final String LABEL_APIGROUP                      = "apigroup";
-	
-	public static final String LABEL_CREATED                       = "created";
-	
-	public static final String LABEL_UPDATED                       = "updated";
-	
-	public static final String LABEL_DATA                          = "data";
 	
 	public static final String DATABASE_TYPE                       = System.getenv("jdbcType") != null ? System.getenv("jdbcType") : DEFAULT_POSTGRES_TYPE;
 	
@@ -90,6 +69,12 @@ public class SQLMapper {
 		DEF_POSTGRES_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.postgres.operators.QueryPostgresDataBuilder");
 		DEF_POSTGRES_VALUES.put("checkDatabase", "io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase");
 		DEF_POSTGRES_VALUES.put("createDatabase", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresDatabase");
+		DEF_POSTGRES_VALUES.put("dropDatabase", "io.github.kubesys.datafrk.postgres.operators.DropPostgresDatabase");
+		DEF_POSTGRES_VALUES.put("checkTable", "io.github.kubesys.datafrk.postgres.operators.CheckPostgresTable");
+		DEF_POSTGRES_VALUES.put("dropTable", "io.github.kubesys.datafrk.postgres.operators.DropPostgresTable");
+		DEF_POSTGRES_VALUES.put("insertObject", "io.github.kubesys.datafrk.postgres.operators.InsertPostgresDataBuilder");
+		DEF_POSTGRES_VALUES.put("updateObject", "io.github.kubesys.datafrk.postgres.operators.UpdatePostgresDataBuilder");
+		DEF_POSTGRES_VALUES.put("deleteObject", "io.github.kubesys.datafrk.postgres.operators.RemovePostgresDataBuilder");
 		
 		DEF_MYSQL_VALUES.put("defaultDriver", "com.mysql.cj.jdbc.Driver");
 		DEF_MYSQL_VALUES.put("defaultPrefix", "jdbc:mysql://");
@@ -103,7 +88,12 @@ public class SQLMapper {
 		DEF_MYSQL_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.mysql.operators.QueryMysqlDataBuilder");
 		DEF_MYSQL_VALUES.put("checkDatabase", "io.github.kubesys.datafrk.postgres.operators.CheckMysqlDatabase");
 		DEF_MYSQL_VALUES.put("createDatabase", "io.github.kubesys.datafrk.postgres.operators.CreateMysqlDatabase");
-
+		DEF_MYSQL_VALUES.put("dropDatabase", "io.github.kubesys.datafrk.postgres.operators.DropMysqlDatabase");
+		DEF_MYSQL_VALUES.put("checkTable", "io.github.kubesys.datafrk.postgres.operators.CheckMysqlTable");
+		DEF_MYSQL_VALUES.put("dropTable", "io.github.kubesys.datafrk.postgres.operators.DropMysqlTable");
+		DEF_MYSQL_VALUES.put("insertObject", "io.github.kubesys.datafrk.mysql.operators.InsertMysqlDataBuilder");
+		DEF_MYSQL_VALUES.put("updateObject", "io.github.kubesys.datafrk.mysql.operators.UpdateMysqlDataBuilder");
+		DEF_MYSQL_VALUES.put("deleteObject", "io.github.kubesys.datafrk.mysql.operators.RemoveMysqlDataBuilder");
 		
 		DEF_VALUES.put(DEFAULT_POSTGRES_TYPE, DEF_POSTGRES_VALUES);
 		DEF_VALUES.put(DEFAULT_MYSQL_TYPE, DEF_MYSQL_VALUES);
@@ -262,17 +252,17 @@ public class SQLMapper {
 	 * @return                                       true or false
 	 * @throws Exception                             exception
 	 */
+	@SuppressWarnings("unchecked")
 	public boolean insertObject(String table, String name, String namespace, String group, String created, String updated, String json) throws Exception {
-		if (!context.currentDatabase().get(table).insert(
-				new InsertPostgresDataBuilder()
-				.insertTo(table)
-				.beginValue(name)
-				.andValue(namespace)
-				.andValue(group)
-				.andValue(created)
-				.andValue(updated)
-				.endValue(json, true)
-				.build())) {
+		InsertDataBuilder<?, InsertData> builder = (InsertDataBuilder<?, InsertData>) Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("insertObject")).newInstance();
+		builder = (InsertDataBuilder<?, InsertData>) builder.insertTo(table);
+		builder = (InsertDataBuilder<?, InsertData>) builder.beginValue(name);
+		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(namespace);
+		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(group);
+		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(created);
+		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(updated);
+		builder = (InsertDataBuilder<?, InsertData>) builder.endValue(json, true);
+		if (!context.currentDatabase().get(table).insert(builder.build())) {
 			return updateObject(table, name, namespace, group, updated, json);
 		}
 		return true;
@@ -288,16 +278,21 @@ public class SQLMapper {
 	 * @return                                       true or false
 	 * @throws Exception                             exception
 	 */
+	@SuppressWarnings("unchecked")
 	public boolean updateObject(String table, String name, String namespace, String group, String updated, String json) throws Exception {
-		return context.currentDatabase().get(table).update(
-				new UpdatePostgresDataBuilder()
-				.update(table)
-				.set(LABEL_UPDATED).eq(updated)
-				.andSet(LABEL_DATA).eq(json, true)
-				.where(LABEL_NAME).eq(name)
-				.and(LABEL_NAMESPACE).eq(namespace)
-				.and(LABEL_APIGROUP).eq(group)
-				.build());
+		UpdateDataBuilder<?, UpdateData> builder = (UpdateDataBuilder<?, UpdateData>) Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("updateObject")).newInstance();
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.update(table);
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.set("updated");
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(updated);
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.set("data");
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(json, true);
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.where("name");
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(name);
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.and("namespace");
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(namespace);
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.and("apigroup");
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(group);
+		return context.currentDatabase().get(table).update(builder.build());
 	}
 	
 	/**
@@ -309,26 +304,32 @@ public class SQLMapper {
 	 * @return                                       true or false
 	 * @throws Exception                             exception
 	 */
+	@SuppressWarnings("unchecked")
 	public boolean deleteObject(String table, String name, String namespace, String group, String json) throws Exception {
-		return context.currentDatabase().get(table).delete(
-				new RemovePostgresDataBuilder()
-				.delete(table)
-				.where(LABEL_NAME).eq(name)
-				.and(LABEL_NAMESPACE).eq(namespace)
-				.and(LABEL_APIGROUP).eq(group)
-				.build());
+		RemoveDataBuilder<?, RemoveData> builder = (RemoveDataBuilder<?, RemoveData>) Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("deleteObject")).newInstance();
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.delete(table);
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.where("name");
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(name);
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.and("namespace");
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(namespace);
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.where("apigroup");
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(group);
+		return context.currentDatabase().get(table).delete(builder.build());
 	}
 
 	public boolean createDatbase(String db) throws Exception {
-		return context.createDatabase(new CreatePostgresDatabase(db));
+		CreateDatabase cdb = (CreateDatabase) Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("createDatabase")).newInstance();
+		return context.createDatabase(cdb);
 	}
 
-	public boolean dropDatabase(String db) {
-		return context.dropDababase(new DropPostgresDatabase(db));
+	public boolean dropDatabase(String db) throws Exception {
+		DropDatabase ddb = (DropDatabase) Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("dropDatabase")).newInstance();
+		return context.dropDababase(ddb);
 	}
 
-	public boolean checkDatabase(String db) {
-		return context.checkDababase(new CheckPostgresDatabase(db));
+	public boolean checkDatabase(String db) throws Exception {
+		CheckDatabase cdb = (CheckDatabase) Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("checkDatabase")).newInstance();
+		return context.checkDababase(cdb);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -346,12 +347,16 @@ public class SQLMapper {
 		return context.currentDatabase().createTable(tableBuilder.build());
 	}
 
-	public boolean dropTable(String table) {
-		return context.currentDatabase().dropTable(new DropPostgresTable(table));
+	public boolean dropTable(String table) throws Exception {
+		Constructor<?> c = Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("dropTable")).getConstructor(String.class);
+		DropTable dt = (DropTable) c.newInstance(table);
+		return context.currentDatabase().dropTable(dt);
 	}
 
-	public boolean checkTable(String table) {
-		return context.currentDatabase().checkTable(new CheckPostgresTable(table));
+	public boolean checkTable(String table) throws Exception {
+		Constructor<?> c = Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("checkTable")).getConstructor(String.class);
+		CheckTable ct = (CheckTable) c.newInstance(table);
+		return context.currentDatabase().checkTable(ct);
 	}
 	
 	/****************************************************************************
@@ -363,42 +368,60 @@ public class SQLMapper {
 	 *****************************************************************************/
 
 	public JsonNode query(String table, String kind, int limit, int page, Map<String, String> labels) throws Exception {
-		StringBuilder sqlBase = createSqlBase(table, labels);
-		return getResults(table, kind, limit, page, sqlBase);
-	}
-	
-	private ObjectNode getResults(String table, String kind, int limit, int page, StringBuilder sqlBase) throws Exception {
-		
-		Table<?> thisTable = context.currentDatabase().get(table);
 		ObjectNode node = new ObjectMapper().createObjectNode();
 		node.put("kind", kind + "List");
 		node.put("apiVersion", "v1");
 		ObjectNode meta = new ObjectMapper().createObjectNode();
 		{
-			String classname = DEF_VALUES.get(DATABASE_TYPE).get("queryBuilder");
-			meta.put("totalCount", getCount(table, thisTable, classname));
+			meta.put("totalCount", getCount(table));
 			meta.put("continue", String.valueOf(page + 1));
 		}
 		node.set("metadata", meta);
-		node.set("items", getItems(table, limit, page, sqlBase));
+		node.set("items", getItems(table, limit, page, labels));
 		return node;
 	}
-
+	
 	@SuppressWarnings("unchecked")
-	private int getCount(String table, Table<?> thisTable, String classname) throws Exception {
-		QueryDataBuilder<?, QueryData> qdb = (QueryDataBuilder<?, QueryData>) Class.forName(classname).newInstance();
-		qdb = (QueryDataBuilder<?, QueryData>) qdb.selectCount(table);
-		QueryData queryData = qdb.build();
-		ResultSet rs = (ResultSet) thisTable.query(new QueryData(queryData.toSQL()));
+	private int getCount(String table) throws Exception {
+		QueryDataBuilder<?, QueryData> queryBuilder = (QueryDataBuilder<?, QueryData>) 
+				Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("queryBuilder")).newInstance();
+		
+		QueryData queryData = ((QueryDataBuilder<?, QueryData>) 
+				queryBuilder.selectCount(table)).build();
+		
+		ResultSet rs = (ResultSet) context.currentDatabase()
+				.get(table).query(new QueryData(queryData.toSQL()));
+		
 		rs.next();
+		
 		return rs.getInt("count");
 	}
 	
-	private ArrayNode getItems(String table, int limit, int page, StringBuilder sqlBase) throws Exception {
+	@SuppressWarnings("unchecked")
+	private ArrayNode getItems(String table, int limit, int page, Map<String, String> labels) throws Exception {
 		
-		sqlBase.append(" order by updated desc ").append(queryLimit(limit, page));
-		String dataSql = sqlBase.toString().replace("#TARGET#", "*");
-		ResultSet rsd = (ResultSet) context.currentDatabase().get(table).query(new QueryData(dataSql));
+		QueryDataBuilder<?, QueryData> queryBuilder = (QueryDataBuilder<?, QueryData>) 
+				Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("queryBuilder")).newInstance();
+		
+		queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.selectAll(table);
+		
+		int i = 0;
+		for (String key : labels.keySet()) {
+			if (i == 0) {
+				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.where(key, true);
+				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.like(labels.get(key));
+			} else {
+				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.and(key, true);
+				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.like(labels.get(key));
+			}
+			++i;
+		}
+		queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.orderBy("updated", true);
+		queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.limit(limit, page);
+		
+		
+		ResultSet rsd = (ResultSet) context.currentDatabase().get(table).query(queryBuilder.build());
+		
 		ArrayNode items = new ObjectMapper().createArrayNode();
 		
 		while (rsd.next()) {
@@ -408,43 +431,4 @@ public class SQLMapper {
 		return items;
 	}
 
-	private StringBuilder createSqlBase(String table, Map<String, String> labels) {
-		StringBuilder sqlBase = new StringBuilder();
-
-		sqlBase.append(SELECT.replace("#TABLE#", table));
-		
-		if (labels != null && !labels.isEmpty()) {
-			
-			sqlBase.append(WHERE);
-			for (String key : labels.keySet()) {
-				
-				StringBuilder sb = new StringBuilder();
-				String[] items = key.split("#");
-				int size = items.length;
-				for (int i = 0; i < size; i++) {
-					if (i != size - 1) {
-						sb.append("->'" + items[i] + "'");
-					} else {
-						sb.append("->>'" + items[i] + "'");
-					}
-				}
-				
-				sqlBase.append(queryConditions().replace("#ITEM#", sb.toString()).replace("#VALUE#", labels.get(key)));
-			}
-
-			sqlBase.delete(sqlBase.length() - 4, sqlBase.length());
-		}
-		
-		return sqlBase;
-	}
-	
-	public String queryConditions() {
-		return POSTGRE_CONDITION;
-	}
-
-	public String queryLimit(int limit, int page) {
-		int l = (limit <= 0) ? 10 : limit;
-		int p = (page <= 1) ? 1 : page;
-		return POSTGRE_LIMIT.replace("#LIMIT#", String.valueOf(limit)).replace("#OFFSET#", String.valueOf((p - 1) * l));
-	}
 }
