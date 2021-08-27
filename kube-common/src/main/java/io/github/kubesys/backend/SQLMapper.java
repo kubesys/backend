@@ -78,26 +78,26 @@ public class SQLMapper {
 	public static final String DATABASE_TYPE                       = System.getenv("jdbcType") != null ? System.getenv("jdbcType") : DEFAULT_POSTGRES_TYPE;
 	
 	static {
-		DEF_POSTGRES_VALUES.put("driver", "org.postgresql.Driver");
-		DEF_POSTGRES_VALUES.put("prefix", "jdbc:postgresql://");
-		DEF_POSTGRES_VALUES.put("host", "kube-database.kube-system");
-		DEF_POSTGRES_VALUES.put("port", "5432");
-		DEF_POSTGRES_VALUES.put("db", "postgres");
-		DEF_POSTGRES_VALUES.put("user", "postgres");
-		DEF_POSTGRES_VALUES.put("pwd", "onceas");
+		DEF_POSTGRES_VALUES.put("defaultDriver", "org.postgresql.Driver");
+		DEF_POSTGRES_VALUES.put("defaultPrefix", "jdbc:postgresql://");
+		DEF_POSTGRES_VALUES.put("defaultHost", "kube-database.kube-system");
+		DEF_POSTGRES_VALUES.put("defaultPort", "5432");
+		DEF_POSTGRES_VALUES.put("defaultDB", "postgres");
+		DEF_POSTGRES_VALUES.put("defaultUser", "postgres");
+		DEF_POSTGRES_VALUES.put("defaultPWD", "onceas");
 		DEF_POSTGRES_VALUES.put("classname", "io.github.kubesys.datafrk.postgres.PostgresDataContext");
 		DEF_POSTGRES_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresTableBuilder");
 		DEF_POSTGRES_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.postgres.operators.QueryPostgresDataBuilder");
 		DEF_POSTGRES_VALUES.put("checkDatabase", "io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase");
 		DEF_POSTGRES_VALUES.put("createDatabase", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresDatabase");
 		
-		DEF_MYSQL_VALUES.put("driver", "com.mysql.cj.jdbc.Driver");
-		DEF_MYSQL_VALUES.put("prefix", "jdbc:mysql://");
-		DEF_MYSQL_VALUES.put("host", "kube-database.kube-system");
-		DEF_MYSQL_VALUES.put("port", "3306");
-		DEF_MYSQL_VALUES.put("db", "mysql");
-		DEF_MYSQL_VALUES.put("user", "root");
-		DEF_MYSQL_VALUES.put("pwd", "onceas");
+		DEF_MYSQL_VALUES.put("defaultDriver", "com.mysql.cj.jdbc.Driver");
+		DEF_MYSQL_VALUES.put("defaultPrefix", "jdbc:mysql://");
+		DEF_MYSQL_VALUES.put("defaultHost", "kube-database.kube-system");
+		DEF_MYSQL_VALUES.put("defaultPort", "3306");
+		DEF_MYSQL_VALUES.put("defaultDB", "mysql");
+		DEF_MYSQL_VALUES.put("defaultUser", "root");
+		DEF_MYSQL_VALUES.put("defaultPWD", "onceas");
 		DEF_MYSQL_VALUES.put("classname", "io.github.kubesys.datafrk.mysql.MysqlDataContext");
 		DEF_MYSQL_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.mysql.operators.CreateMysqlTableBuilder");
 		DEF_MYSQL_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.mysql.operators.QueryMysqlDataBuilder");
@@ -153,13 +153,13 @@ public class SQLMapper {
 		Properties props = createProperties();
 		
 		DataContext fake = createDataContext(props);
-		String db = System.getenv("jdbcDB");
+		String db = getValue(System.getenv("jdbcDB"), "kube");
 		if (!fake.checkDababase(createCheckDatabase(db))) {
 			fake.createDatabase(createCreateDatabase(db));
 		}
 		fake.currentDatabase().close();
 		
-		props.put("druid.url", realUrl(System.getenv("jdbcUrl"), db)); 
+		props.put("druid.url", realUrl(props.getProperty("druid.url"), db)); 
 		return createDataContext(props);
 	}
 	
@@ -221,23 +221,23 @@ public class SQLMapper {
 	}
 	
 	private static String getDriver() {
-		return getValue(System.getenv("jdbcDriver"), DEF_VALUES.get(DATABASE_TYPE).get("driver"));
+		return getValue(System.getenv("jdbcDriver"), DEF_VALUES.get(DATABASE_TYPE).get("defaultDriver"));
 	}
 	
 	private static String getUrl() {
-		return DEF_VALUES.get(DATABASE_TYPE).get("prefix") 
-				+ getValue(System.getenv("jdbcHost"), DEF_VALUES.get(DATABASE_TYPE).get("host")) + ":"
-				+ getValue(System.getenv("jdbcPort"), DEF_VALUES.get(DATABASE_TYPE).get("port")) + "/"
-				+ getValue(System.getenv("jdbcDB"), DEF_VALUES.get(DATABASE_TYPE).get("db")) 
+		return DEF_VALUES.get(DATABASE_TYPE).get("defaultPrefix") 
+				+ getValue(System.getenv("jdbcHost"), DEF_VALUES.get(DATABASE_TYPE).get("defaultHost")) + ":"
+				+ getValue(System.getenv("jdbcPort"), DEF_VALUES.get(DATABASE_TYPE).get("defaultPort")) + "/"
+				+ DEF_VALUES.get(DATABASE_TYPE).get("defaultDB") 
 				+ "?useUnicode=true&characterEncoding=UTF8&connectTimeout=2000&socketTimeout=6000&autoReconnect=true&&serverTimezone=Asia/Shang";
 	}
 	
 	private static String getUser() {
-		return getValue(System.getenv("jdbcUser"), DEF_VALUES.get(DATABASE_TYPE).get("user"));
+		return getValue(System.getenv("jdbcUser"), DEF_VALUES.get(DATABASE_TYPE).get("defaultUser"));
 	}
 	
 	private static String getPassword() {
-		return getValue(System.getenv("jdbcPassword"), DEF_VALUES.get(DATABASE_TYPE).get("pwd"));
+		return getValue(System.getenv("jdbcPassword"), DEF_VALUES.get(DATABASE_TYPE).get("defaultPWD"));
 	}
 	
 	private static String getValue(String inputValue, String defValue) {
