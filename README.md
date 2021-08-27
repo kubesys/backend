@@ -21,7 +21,14 @@ This project is based on the following softwares.
 
 ## Usage
 
-### enviroment
+### Quick start for single cluster
+
+```
+git clone https://github.com/kubesys/kube-backend.git
+bash run.sh
+```
+
+### Config as you want (optional)
 
 ```
 jdbcType=postgres // (postgres or mysql)
