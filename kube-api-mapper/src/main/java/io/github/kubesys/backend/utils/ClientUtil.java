@@ -5,12 +5,10 @@ package io.github.kubesys.backend.utils;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.github.kubesys.backend.KubeSQLClient;
-import io.github.kubesys.datafrk.postgres.PostgresDataContext;
+import io.github.kubesys.backend.SQLMapper;
 import io.github.kubesys.kubeclient.KubernetesCRDWacther;
 import io.github.kubesys.kubeclient.KubernetesClient;
 import io.github.kubesys.kubeclient.KubernetesConstants;
@@ -148,25 +146,17 @@ public class ClientUtil {
      *
      ***********************************************/
     
-    protected static KubeSQLClient sqlClient = null;
+    protected static SQLMapper sqlClient = null;
 	
 	/**
 	 * @return                           sqlClient
 	 */
-	public static synchronized KubeSQLClient sqlClient() {
+	public static synchronized SQLMapper sqlClient() {
 		
 		try {
 			if (sqlClient == null) {
-				Properties props = new Properties();
-				props.put("druid.driverClassName", System.getenv("jdbcDriver")); 
-				props.put("druid.url", realUrl(System.getenv("jdbcUrl"), System.getenv("jdbcDB"))); 
-				props.put("druid.username", System.getenv("jdbcUser")); 
-				props.put("druid.password", System.getenv("jdbcPassword"));
-				props.put("druid.initialSize", 10); 
-				props.put("druid.maxActive", 100);
-				props.put("druid.maxWait", 0);
 				
-				sqlClient =  new KubeSQLClient(new PostgresDataContext(props));
+				sqlClient =  new SQLMapper(tokenMaps.get("default"));
 			}
 		} catch (Exception ex) {
 			return null;
@@ -175,14 +165,4 @@ public class ClientUtil {
 		return sqlClient;
 	}
 	
-	private static String realUrl(String oldUrl, String database) {
-		int stx = oldUrl.indexOf("/", getUrlPrefix().length());
-		int etx = oldUrl.indexOf("?");
-		return (etx == - 1) ? oldUrl.substring(0, stx + 1) + database :
-				oldUrl.substring(0, stx + 1) + database + oldUrl.substring(etx);
-	}
-
-	private static String getUrlPrefix() {
-		return "jdbc:postgresql://";
-	}
 }

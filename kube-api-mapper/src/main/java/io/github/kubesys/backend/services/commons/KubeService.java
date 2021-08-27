@@ -3,6 +3,7 @@
  */
 package io.github.kubesys.backend.services.commons;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -189,7 +190,8 @@ public class KubeService extends HttpBodyHandler {
 			
 			return ClientUtil.sqlClient().query(getTable(token, getFullKind(token, kind)), 
 											getKind(kind), 
-											limit, page, labels != null ? labels : null);
+											limit, page, 
+											labels != null ? labels : new HashMap<>());
 		} catch (Exception ex) {
 			throw new Exception("查询资源失败, 数据库宕机或者数据库中不存类型" + kind+ "对应的数据表.");
 		} finally {
