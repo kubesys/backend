@@ -11,6 +11,26 @@ Providing unified API to manage mutiple Kubernetes clusters:
 
 - wuheng@iscas.ac.cn
 
+## Usage
+
+### enviroment
+
+```
+jdbcType=postgres // (postgres or mysql)
+jdbcDriver=org.postgresql.Driver //optional, default is 'org.postgresql.Driver'
+
+// jdbc:postgresql://127.0.0.1:5432/kube
+jdbcHost=127.0.0.1 // optional, default is 'kube-database.kube-system'
+jdbcPort=5432  // optional, postgres is 5432, mysql is 3306
+jdbcDB=kube  // optional, default is 'kube'
+
+jdbcUser=postgres   // optional, postgres is 'postgres', mysql is 'root'
+jdbcPassword=onceas // optional, default is 'onceas'
+
+kubeToken=xxx     // see project kubernetes-client-java
+kubeUrl=https://39.100.71.73:6443     // see project kubernetes-client-java
+```
+
 ## Architecture
 
 If you have just a cluster, you should deploy all components in it. 
