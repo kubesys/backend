@@ -19,11 +19,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.kubesys.datafrk.core.DataContext;
 import io.github.kubesys.datafrk.core.Table;
 import io.github.kubesys.datafrk.core.items.ItemTypeBuilder;
+import io.github.kubesys.datafrk.core.operators.CheckDatabase;
+import io.github.kubesys.datafrk.core.operators.CreateDatabase;
 import io.github.kubesys.datafrk.core.operators.CreateTable;
 import io.github.kubesys.datafrk.core.operators.CreateTableBuilder;
 import io.github.kubesys.datafrk.core.operators.QueryData;
 import io.github.kubesys.datafrk.core.operators.QueryDataBuilder;
-import io.github.kubesys.datafrk.druid.DruidDataContext;
 import io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase;
 import io.github.kubesys.datafrk.postgres.operators.CheckPostgresTable;
 import io.github.kubesys.datafrk.postgres.operators.CreatePostgresDatabase;
@@ -32,6 +33,7 @@ import io.github.kubesys.datafrk.postgres.operators.DropPostgresTable;
 import io.github.kubesys.datafrk.postgres.operators.InsertPostgresDataBuilder;
 import io.github.kubesys.datafrk.postgres.operators.RemovePostgresDataBuilder;
 import io.github.kubesys.datafrk.postgres.operators.UpdatePostgresDataBuilder;
+import io.github.kubesys.kubeclient.KubernetesClient;
 
 /**
  * @author wuheng@iscas.ac.cn
@@ -48,7 +50,6 @@ public class SQLMapper {
 	private static final String POSTGRE_CONDITION      = " data#ITEM# like '%#VALUE#%' AND ";
 
 	private static final String POSTGRE_LIMIT          = " LIMIT #LIMIT# OFFSET #OFFSET#";
-	
 	
 	public static final Logger m_logger = Logger.getLogger(SQLMapper.class.getName());
 
@@ -87,6 +88,8 @@ public class SQLMapper {
 		DEF_POSTGRES_VALUES.put("classname", "io.github.kubesys.datafrk.postgres.PostgresDataContext");
 		DEF_POSTGRES_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresTableBuilder");
 		DEF_POSTGRES_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.postgres.operators.QueryPostgresDataBuilder");
+		DEF_POSTGRES_VALUES.put("checkDatabase", "io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase");
+		DEF_POSTGRES_VALUES.put("createDatabase", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresDatabase");
 		
 		DEF_MYSQL_VALUES.put("driver", "com.mysql.cj.jdbc.Driver");
 		DEF_MYSQL_VALUES.put("prefix", "jdbc:mysql://");
@@ -98,6 +101,9 @@ public class SQLMapper {
 		DEF_MYSQL_VALUES.put("classname", "io.github.kubesys.datafrk.mysql.MysqlDataContext");
 		DEF_MYSQL_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.mysql.operators.CreateMysqlTableBuilder");
 		DEF_MYSQL_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.mysql.operators.QueryMysqlDataBuilder");
+		DEF_MYSQL_VALUES.put("checkDatabase", "io.github.kubesys.datafrk.postgres.operators.CheckMysqlDatabase");
+		DEF_MYSQL_VALUES.put("createDatabase", "io.github.kubesys.datafrk.postgres.operators.CreateMysqlDatabase");
+
 		
 		DEF_VALUES.put(DEFAULT_POSTGRES_TYPE, DEF_POSTGRES_VALUES);
 		DEF_VALUES.put(DEFAULT_MYSQL_TYPE, DEF_MYSQL_VALUES);
@@ -105,20 +111,8 @@ public class SQLMapper {
 	
 	protected final DataContext context;
 	
+	protected final KubernetesClient kubeClient;
 	
-	public SQLMapper() {
-		this.context = createDataContext();
-	}
-	
-	public SQLMapper(DruidDataContext context) {
-		super();
-		this.context = context;
-	}
-
-	public void close() throws Exception {
-		this.context.currentDatabase().close();
-	}
-
 	/****************************************************************************
 	 * 
 	 * 
@@ -127,18 +121,94 @@ public class SQLMapper {
 	 * 
 	 *****************************************************************************/
 	
-	private DataContext createDataContext() {
+	public SQLMapper(KubernetesClient kubeClient) throws Exception {
+		this(kubeClient, createDataContext());
+	}
+	
+	public SQLMapper(KubernetesClient kubeClient, DataContext context) {
+		super();
+		this.context = context;
+		this.kubeClient = kubeClient;
+	}
+
+	public void close() throws Exception {
+		this.context.currentDatabase().close();
+	}
+
+	
+	private static String realUrl(String oldUrl, String database) {
+		int stx = oldUrl.indexOf("/", filterPrefix(oldUrl));
+		int etx = oldUrl.indexOf("?");
+		return (etx == - 1) ? oldUrl.substring(0, stx + 1) + database :
+				oldUrl.substring(0, stx + 1) + database + oldUrl.substring(etx);
+	}
+
+	
+	private static int filterPrefix(String oldUrl) {
+		int idx = oldUrl.indexOf("://");
+		return idx + "://".length() + 1;
+	}
+	
+	private static DataContext createDataContext() throws Exception {
+		Properties props = createProperties();
+		
+		DataContext fake = createDataContext(props);
+		String db = System.getenv("jdbcDB");
+		if (!fake.checkDababase(createCheckDatabase(db))) {
+			fake.createDatabase(createCreateDatabase(db));
+		}
+		fake.currentDatabase().close();
+		
+		props.put("druid.url", realUrl(System.getenv("jdbcUrl"), db)); 
+		return createDataContext(props);
+	}
+	
+	private static DataContext createDataContext(Properties props) {
 		try {
 			Class<?> clz = Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("classname"));
 			Constructor<?> c = clz.getConstructor(Properties.class);
-			return (DataContext) c.newInstance(createProperties());
+			return (DataContext) c.newInstance(props);
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			return null;
 		}
 	}
 	
-	private Properties createProperties() {
+	private static CheckDatabase createCheckDatabase(String db) {
+		try {
+			Class<?> clz = Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("checkDatabase"));
+			Constructor<?> c = clz.getConstructor(String.class);
+			return (CheckDatabase) c.newInstance(db);
+		} catch (Exception ex) {
+			m_logger.severe(ex.toString());
+			return null;
+		}
+	}
+	
+	private static CreateDatabase createCreateDatabase(String db) {
+		try {
+			Class<?> clz = Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("createDatabase"));
+			Constructor<?> c = clz.getConstructor(String.class);
+			return (CreateDatabase) c.newInstance(db);
+		} catch (Exception ex) {
+			m_logger.severe(ex.toString());
+			return null;
+		}
+	}
+	
+	public KubernetesClient getKubeClient() {
+		return kubeClient;
+	}
+
+	/****************************************************************************
+	 * 
+	 * 
+	 *                        Properties
+	 * 
+	 * 
+	 *****************************************************************************/
+	
+	public static Properties createProperties() {
 		Properties props = new Properties();
 		props.put("druid.driverClassName", getDriver()); 
 		props.put("druid.url", getUrl());
@@ -150,11 +220,11 @@ public class SQLMapper {
 		return props;
 	}
 	
-	private String getDriver() {
+	private static String getDriver() {
 		return getValue(System.getenv("jdbcDriver"), DEF_VALUES.get(DATABASE_TYPE).get("driver"));
 	}
 	
-	private String getUrl() {
+	private static String getUrl() {
 		return DEF_VALUES.get(DATABASE_TYPE).get("prefix") 
 				+ getValue(System.getenv("jdbcHost"), DEF_VALUES.get(DATABASE_TYPE).get("host")) + ":"
 				+ getValue(System.getenv("jdbcPort"), DEF_VALUES.get(DATABASE_TYPE).get("port")) + "/"
@@ -162,15 +232,15 @@ public class SQLMapper {
 				+ "?useUnicode=true&characterEncoding=UTF8&connectTimeout=2000&socketTimeout=6000&autoReconnect=true&&serverTimezone=Asia/Shang";
 	}
 	
-	private String getUser() {
+	private static String getUser() {
 		return getValue(System.getenv("jdbcUser"), DEF_VALUES.get(DATABASE_TYPE).get("user"));
 	}
 	
-	private String getPassword() {
+	private static String getPassword() {
 		return getValue(System.getenv("jdbcPassword"), DEF_VALUES.get(DATABASE_TYPE).get("pwd"));
 	}
 	
-	private String getValue(String inputValue, String defValue) {
+	private static String getValue(String inputValue, String defValue) {
 		return (inputValue == null) ? defValue : inputValue;
 	}
 	
