@@ -39,7 +39,7 @@ public class KubeMirror {
 	/**
 	 * sql client
 	 */
-	protected final SQLMapper sqlMapper;
+	protected SQLMapper sqlMapper;
 	
 	
 	/**
@@ -56,7 +56,12 @@ public class KubeMirror {
 	 *****************************************************************************/
 	
 	public KubeMirror(KubernetesClient kubeClient) throws Exception {
-		this.sqlMapper = new SQLMapper(kubeClient);	
+		try {
+			this.sqlMapper = new SQLMapper(kubeClient);
+		} catch (Exception ex) {
+			m_logger.severe(ex.toString());
+			System.exit(1);
+		}
 	}
 
 

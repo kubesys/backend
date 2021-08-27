@@ -5,6 +5,7 @@ package io.github.kubesys.backend.utils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -22,6 +23,8 @@ import io.github.kubesys.kubeclient.KubernetesWatcher;
  */
 public class ClientUtil {
 
+	public static Logger m_logger = Logger.getLogger(ClientUtil.class.getName());
+	
 	/******************************************
     *
     *         kubeClient
@@ -43,6 +46,8 @@ public class ClientUtil {
 			ClientUtil.getClient("default").watchResources("User", "", 
 					new UserWatcher(ClientUtil.getClient("default")));
 		} catch (Exception e) {
+			m_logger.severe(e.toString());
+			System.exit(1);
 		}
     }
 
@@ -63,8 +68,7 @@ public class ClientUtil {
 								System.getenv("kubeUrl"), 
 								token));
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				m_logger.severe(e.toString());
 			}
 		}
 
@@ -86,8 +90,8 @@ public class ClientUtil {
 				ClientUtil.getClient("default").watchResources("User", "", 
 						new UserWatcher(ClientUtil.getClient("default")));
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				m_logger.severe(e.toString());
+				System.exit(1);
 			}
 			
 		}
@@ -155,11 +159,11 @@ public class ClientUtil {
 		
 		try {
 			if (sqlClient == null) {
-				
 				sqlClient =  new SQLMapper(tokenMaps.get("default"));
 			}
 		} catch (Exception ex) {
-			return null;
+			m_logger.severe(ex.toString());
+			System.exit(1);
 		}
 		
 		return sqlClient;
