@@ -23,7 +23,7 @@ spec:
           effect: NoSchedule
       containers:
       - name: "kube-api-mapper"
-        image: "registry.cn-beijing.aliyuncs.com/doslab/kubernetes-api-mapper:v#version#-#arch#"
+        image: "registry.cn-beijing.aliyuncs.com/doslab/kube-api-mapper:v#version#-#arch#"
         imagePullPolicy: "IfNotPresent"
         command: 
         - "java"
