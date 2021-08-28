@@ -31,15 +31,15 @@ spec:
         - "kube-api-mapper.jar"
         env:
         - name: jdbcType
-          value: #type#
+          value: "#type#"
         - name: jdbcHost
-          value: #host#
+          value: "#host#"
         - name: jdbcPort
-          value: #port#
+          value: "#port#"
         - name: kubeUrl
-          value: #url#
+          value: "#url#"
         - name: kubeToken
-          value: #token#
+          value: "#token#"
 ---
 apiVersion: v1
 kind: Service
