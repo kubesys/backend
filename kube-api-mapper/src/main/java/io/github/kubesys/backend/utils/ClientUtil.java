@@ -34,23 +34,56 @@ public class ClientUtil {
     public final static Map<String, KubernetesClient> tokenMaps = new HashMap<>();
     
     static {
-    	try {
-	    	KubernetesClient client = new KubernetesClient(
-					System.getenv("kubeUrl"), 
-					System.getenv("kubeToken"));
-			tokenMaps.put("default", client);
-			tokenMaps.put("admin-" + System.getenv("kubeToken").substring(0, 8), client);
-			recoverAllRoles(client);
-		
-			client.watchResources("apiextensions.k8s.io.CustomResourceDefinition", new KubernetesCRDWacther(client));
-			ClientUtil.getClient("default").watchResources("User", "", 
-					new UserWatcher(ClientUtil.getClient("default")));
-		} catch (Exception e) {
-			m_logger.severe(e.toString());
-			System.exit(1);
-		}
+		initKubeClient();
     }
 
+	private static void initKubeClient() {
+		if (tokenMaps.size() == 0) {
+			try {
+		    	KubernetesClient client = new KubernetesClient(
+						System.getenv("kubeUrl"), 
+						System.getenv("kubeToken"));
+				tokenMaps.put("default", client);
+				tokenMaps.put("admin-" + System.getenv("kubeToken").substring(0, 8), client);
+				recoverAllRoles(client);
+			
+				client.watchResources("apiextensions.k8s.io.CustomResourceDefinition", new KubernetesCRDWacther(client));
+				ClientUtil.getClient("default").watchResources("User", "", 
+						new UserWatcher(ClientUtil.getClient("default")));
+			} catch (Exception e) {
+				m_logger.severe(e.toString());
+				System.exit(1);
+			}
+		}
+	}
+
+	
+   
+   protected static SQLMapper sqlMapper = null;
+	
+	/**
+	 * @return                           sqlClient
+	 */
+	public static synchronized SQLMapper sqlMapper() {
+		
+		try {
+			if (sqlMapper == null) {
+				initKubeClient();
+				sqlMapper =  new SQLMapper(tokenMaps.get("default"));
+			}
+		} catch (Exception ex) {
+			m_logger.severe(ex.toString());
+			System.exit(1);
+		}
+		
+		return sqlMapper;
+	}
+	
+	/******************************************
+    *
+    *         UserWatcher
+    *
+    ***********************************************/
     private static class UserWatcher extends KubernetesWatcher {
 
 		public UserWatcher(KubernetesClient kubeClient) {
@@ -144,29 +177,5 @@ public class ClientUtil {
     	}
     }
     
-    /******************************************
-     *
-     *         SqlClient
-     *
-     ***********************************************/
-    
-    protected static SQLMapper sqlClient = null;
-	
-	/**
-	 * @return                           sqlClient
-	 */
-	public static synchronized SQLMapper sqlClient() {
-		
-		try {
-			if (sqlClient == null) {
-				sqlClient =  new SQLMapper(tokenMaps.get("default"));
-			}
-		} catch (Exception ex) {
-			m_logger.severe(ex.toString());
-			System.exit(1);
-		}
-		
-		return sqlClient;
-	}
 	
 }

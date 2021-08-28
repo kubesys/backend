@@ -188,7 +188,7 @@ public class KubeService extends HttpBodyHandler {
 				throw new Exception("没有权限, 无法操作资源类型 " + kind + ". ");
 			}
 			
-			return ClientUtil.sqlClient().query(getTable(token, getFullKind(token, kind)), 
+			return ClientUtil.sqlMapper().query(getTable(token, getFullKind(token, kind)), 
 											getKind(kind), 
 											limit, page, 
 											labels != null ? labels : new HashMap<>());
