@@ -284,7 +284,7 @@ public class SQLMapper {
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.update(table);
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.set("updated");
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(updated);
-		builder = (UpdateDataBuilder<?, UpdateData>) builder.set("data");
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.andSet("data");
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(json, true);
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.where("name");
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(name);
