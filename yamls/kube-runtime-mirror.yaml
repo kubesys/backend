@@ -23,19 +23,19 @@ spec:
           effect: NoSchedule
       containers:
       - name: "kube-runtime-mirror"
-        image: "registry.cn-beijing.aliyuncs.com/doslab/kubernetes-mirror:v#version#-#arch#"
+        image: "registry.cn-beijing.aliyuncs.com/doslab/kube-runtime-mirror:v#version#-#arch#"
         imagePullPolicy: "IfNotPresent"
         env:
         - name: jdbcType
-          value: #type#
+          value: "#type#"
         - name: jdbcHost
-          value: #host#
+          value: "#host#"
         - name: jdbcPort
-          value: #port#
+          value: "#port#"
         - name: kubeUrl
-          value: #url#
+          value: "#url#"
         - name: kubeToken
-          value: #token#
+          value: "#token#"
         command: 
         - "java"
         - "-jar"
