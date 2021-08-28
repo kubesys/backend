@@ -75,7 +75,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>io.github.kubesys.mirror.KubeStarter</mainClass>
+							<mainClass>io.github.kubesys.backend.KubeStarter</mainClass>
 						</manifest>
 						<manifestEntries>
 							<Class-Path>.</Class-Path>
