@@ -39,7 +39,7 @@ version=$(cat $mirror/pom.xml | grep version | head -1 | awk -F">" '{print$2}' |
 # host and url
 name=$(hostname | tr '[A-Z]' '[a-z]')
 host=$(kubectl get no $name -o yaml | grep "\- address:" | head -1 | awk -F":" '{print$2}' | sed  's/^[ \t]*//g')
-url="https://"$host":6443"
+url="https:\/\/"$host":6443"
 
 #@ port
 port="30306"
