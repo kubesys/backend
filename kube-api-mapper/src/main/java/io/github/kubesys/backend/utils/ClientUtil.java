@@ -39,21 +39,27 @@ public class ClientUtil {
 
 	private static void initKubeClient() {
 		if (tokenMaps.size() == 0) {
+			KubernetesClient client = null;
 			try {
-		    	KubernetesClient client = new KubernetesClient(
+		    	client = new KubernetesClient(
 						System.getenv("kubeUrl"), 
 						System.getenv("kubeToken"));
 				tokenMaps.put("default", client);
 				tokenMaps.put("admin-" + System.getenv("kubeToken").substring(0, 8), client);
-				recoverAllRoles(client);
-			
 				client.watchResources("apiextensions.k8s.io.CustomResourceDefinition", new KubernetesCRDWacther(client));
-				ClientUtil.getClient("default").watchResources("User", "", 
-						new UserWatcher(ClientUtil.getClient("default")));
 			} catch (Exception e) {
 				m_logger.severe(e.toString());
 				System.exit(1);
 			}
+			
+			try {
+				recoverAllRoles(client);
+				ClientUtil.getClient("default").watchResources("User", "", 
+						new UserWatcher(ClientUtil.getClient("default")));
+			} catch (Exception e) {
+				m_logger.warning("deploy frontend can fix this issue: " + e.toString());
+			}
+			
 		}
 	}
 
