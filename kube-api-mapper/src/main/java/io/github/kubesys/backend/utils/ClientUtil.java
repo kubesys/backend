@@ -45,7 +45,7 @@ public class ClientUtil {
 						System.getenv("kubeUrl"), 
 						System.getenv("kubeToken"));
 				tokenMaps.put("default", client);
-				tokenMaps.put("admin-" + System.getenv("kubeToken").substring(0, 8), client);
+				tokenMaps.put("1001-admin-" + System.getenv("kubeToken").substring(0, 8), client);
 				client.watchResources("apiextensions.k8s.io.CustomResourceDefinition", new KubernetesCRDWacther(client));
 			} catch (Exception e) {
 				m_logger.severe(e.toString());
