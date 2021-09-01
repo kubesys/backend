@@ -367,6 +367,25 @@ public class SQLMapper {
 	 * 
 	 *****************************************************************************/
 
+	public JsonNode queryCount(String table, String field, String value) throws Exception {
+		ObjectNode node = new ObjectMapper().createObjectNode();
+		node.put("totalCount", getCount(table));
+		return node;
+	}
+	
+	public ArrayNode queryAll(String table, String field) throws Exception {
+		ArrayNode list = new ObjectMapper().createArrayNode();
+		ArrayNode results = getItems(table, 10000, 0, new HashMap<>());
+		for (int i = 0; i < results.size(); i++) {
+			JsonNode item = results.get(i);
+			for (String key : field.split("##")) {
+				item = item.get(key);
+			}
+			list.add(item.asText());
+		}
+		return list;
+	}
+	
 	public JsonNode query(String table, String kind, int limit, int page, Map<String, String> labels) throws Exception {
 		ObjectNode node = new ObjectMapper().createObjectNode();
 		node.put("kind", kind + "List");
@@ -381,20 +400,36 @@ public class SQLMapper {
 		return node;
 	}
 	
-	@SuppressWarnings("unchecked")
 	private int getCount(String table) throws Exception {
+		return getCount(table, null, null);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private int getCount(String table, String label, String value) throws Exception {
 		QueryDataBuilder<?, QueryData> queryBuilder = (QueryDataBuilder<?, QueryData>) 
 				Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("queryBuilder")).newInstance();
 		
-		QueryData queryData = ((QueryDataBuilder<?, QueryData>) 
-				queryBuilder.selectCount(table)).build();
+		queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.selectCount(table);
 		
-		ResultSet rs = (ResultSet) context.currentDatabase()
+		if (label != null) {
+			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.where(label);
+			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.eq(value);
+		}
+		
+		QueryData queryData = queryBuilder.build();
+		
+		try {
+			ResultSet rs = (ResultSet) context.currentDatabase()
 				.get(table).query(new QueryData(queryData.toSQL()));
 		
-		rs.next();
+			rs.next();
 		
-		return rs.getInt("count");
+			return rs.getInt("count");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			System.err.println(queryData.toSQL());
+			return 0;
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -408,12 +443,11 @@ public class SQLMapper {
 		int i = 0;
 		for (String key : labels.keySet()) {
 			if (i == 0) {
-				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.where(key, true);
-				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.like(labels.get(key));
+				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.where("data", key.replaceAll("##", "."), true);
 			} else {
-				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.and(key, true);
-				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.like(labels.get(key));
+				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.and("data", key.replaceAll("##", "."), true);
 			}
+			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.like(labels.get(key));
 			++i;
 		}
 		queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.orderBy("updated", true);

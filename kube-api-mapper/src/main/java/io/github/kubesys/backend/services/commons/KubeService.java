@@ -191,7 +191,7 @@ public class KubeService extends HttpBodyHandler {
 			return ClientUtil.sqlMapper().query(getTable(token, getFullKind(token, kind)), 
 											getKind(kind), 
 											limit, page, 
-											labels != null ? labels : new HashMap<>());
+											(labels != null) ? labels : new HashMap<>());
 		} catch (Exception ex) {
 			throw new Exception("查询资源失败, 数据库宕机或者数据库中不存类型" + kind+ "对应的数据表.");
 		} finally {
@@ -199,6 +199,38 @@ public class KubeService extends HttpBodyHandler {
 		}
 	}
 
+	
+	public JsonNode queryResourceCount (
+			String token,
+			JsonNode data)
+			throws Exception {
+		try {
+			return ClientUtil.sqlMapper().queryCount(
+						getTable(token, getFullKind(token, 
+								data.get("link").asText())),
+						data.get("tag").asText(),
+						data.get("value").asText());
+			
+		} catch (Exception ex) {
+			throw new Exception("强制创建资源失败, 不符合Kubernetes语法或者字段无法更新.");
+		} 
+	}
+	
+	public JsonNode queryResourceValue (
+			String token,
+			JsonNode data)
+			throws Exception {
+		
+		try {
+			return ClientUtil.sqlMapper().queryAll(
+					getTable(token, getFullKind(token, 
+							data.get("kind").asText())), 
+					data.get("field").asText());
+		} catch (Exception ex) {
+			throw new Exception("强制创建资源失败, 不符合Kubernetes语法或者字段无法更新.");
+		} 
+	}
+	
 	/**
 	 * @param token       token
 	 * @return            json
