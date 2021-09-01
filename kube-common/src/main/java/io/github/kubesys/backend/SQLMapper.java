@@ -369,7 +369,7 @@ public class SQLMapper {
 
 	public JsonNode queryCount(String table, String field, String value) throws Exception {
 		ObjectNode node = new ObjectMapper().createObjectNode();
-		node.put("totalCount", getCount(table));
+		node.put("totalCount", getCount(table, field, value));
 		return node;
 	}
 	
@@ -406,13 +406,14 @@ public class SQLMapper {
 	
 	@SuppressWarnings("unchecked")
 	private int getCount(String table, String label, String value) throws Exception {
+		
 		QueryDataBuilder<?, QueryData> queryBuilder = (QueryDataBuilder<?, QueryData>) 
 				Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("queryBuilder")).newInstance();
 		
 		queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.selectCount(table);
 		
 		if (label != null) {
-			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.where(label);
+			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.where("data", label.replaceAll("##", "."), true);
 			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.eq(value);
 		}
 		
