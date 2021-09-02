@@ -10,6 +10,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.kubesys.httpfrk.core.HttpBodyHandler;
 import com.github.kubesys.tools.annotations.ServiceDefinition;
@@ -222,13 +223,26 @@ public class KubeService extends HttpBodyHandler {
 			throws Exception {
 		
 		try {
-			return ClientUtil.sqlMapper().queryAll(
-					getTable(token, getFullKind(token, 
-							data.get("kind").asText())), 
-					data.get("field").asText());
+			if (data.get("kind").asText().contains("ConfigMap")) {
+				return ClientUtil.getClient(token).getResource(
+						data.get("kind").asText(), 
+						data.get("namespace").asText(), 
+						data.get("name").asText()).get("data");
+			} else {
+				ObjectNode json = new ObjectMapper().createObjectNode();
+				ArrayNode arrayNode = ClientUtil.sqlMapper().queryAll(
+						getTable(token, getFullKind(token, 
+								data.get("kind").asText())), 
+						data.get("field").asText());
+				for (int i = 0; i < arrayNode.size(); i++) {
+					json.put(arrayNode.get(i).asText(), arrayNode.get(i).asText());
+				}
+				return json;
+			}
 		} catch (Exception ex) {
 			throw new Exception("强制创建资源失败, 不符合Kubernetes语法或者字段无法更新.");
 		} 
+		
 	}
 	
 	/**
