@@ -369,7 +369,11 @@ public class SQLMapper {
 
 	public JsonNode queryCount(String table, String field, String value) throws Exception {
 		ObjectNode node = new ObjectMapper().createObjectNode();
-		node.put("totalCount", getCount(table, field, value));
+		Map<String, String> labels = new HashMap<>();
+		if (field != null && !"".equals(field)) {
+			labels.put(field, value);
+		}
+		node.put("totalCount", getCount(table, labels));
 		return node;
 	}
 	
@@ -392,7 +396,7 @@ public class SQLMapper {
 		node.put("apiVersion", "v1");
 		ObjectNode meta = new ObjectMapper().createObjectNode();
 		{
-			meta.put("totalCount", getCount(table));
+			meta.put("totalCount", getCount(table, labels == null ? new HashMap<>() : labels));
 			meta.put("continue", String.valueOf(page + 1));
 		}
 		node.set("metadata", meta);
@@ -400,21 +404,23 @@ public class SQLMapper {
 		return node;
 	}
 	
-	private int getCount(String table) throws Exception {
-		return getCount(table, null, null);
-	}
-	
 	@SuppressWarnings("unchecked")
-	private int getCount(String table, String label, String value) throws Exception {
+	private int getCount(String table, Map<String, String> labels) throws Exception {
 		
 		QueryDataBuilder<?, QueryData> queryBuilder = (QueryDataBuilder<?, QueryData>) 
 				Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("queryBuilder")).newInstance();
 		
 		queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.selectCount(table);
 		
-		if (label != null) {
-			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.where("data", label.replaceAll("##", "."), true);
-			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.eq(value);
+		int i = 0;
+		for (String key : labels.keySet()) {
+			if (i == 0) {
+				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.where("data", key.replaceAll("##", "."), true);
+			} else {
+				queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.and("data", key.replaceAll("##", "."), true);
+			}
+			queryBuilder = (QueryDataBuilder<?, QueryData>) queryBuilder.like(labels.get(key));
+			++i;
 		}
 		
 		QueryData queryData = queryBuilder.build();
@@ -428,7 +434,6 @@ public class SQLMapper {
 			return rs.getInt("count");
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			System.err.println(queryData.toSQL());
 			return 0;
 		}
 	}
