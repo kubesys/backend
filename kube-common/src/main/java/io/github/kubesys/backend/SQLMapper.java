@@ -312,7 +312,7 @@ public class SQLMapper {
 		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(name);
 		builder = (RemoveDataBuilder<?, RemoveData>) builder.and("namespace");
 		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(namespace);
-		builder = (RemoveDataBuilder<?, RemoveData>) builder.where("apigroup");
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.and("apigroup");
 		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(group);
 		return context.currentDatabase().get(table).delete(builder.build());
 	}
