@@ -32,7 +32,7 @@ public class KubeStarter {
 		
 		
 		KubeMirror kubeMirror = new KubeMirror(kubeClient);
-		kubeMirror.start("doslab.io.Hub");
+		kubeMirror.start();
 		
 	}
 	
