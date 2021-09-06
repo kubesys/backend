@@ -87,7 +87,7 @@ public class MockUtil {
 		if (client == null) {
 			client = new KubernetesClient(
 				System.getenv("kubeUrl"),
-				System.getenv("token"));
+				System.getenv("kubeToken"));
 		}
 	}
 
