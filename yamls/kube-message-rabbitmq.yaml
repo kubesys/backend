@@ -1,16 +1,3 @@
----
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: kube-message
-  namespace: kube-system
-data:
-  HOST: kube-message.kube-system
-  USER: root
-  PASSWORD: onceas
-  PORT: "5672"
-  QUEUE: frontend-events
---- 
 apiVersion: "apps/v1"
 kind: "Deployment"
 metadata: 
@@ -35,19 +22,14 @@ spec:
           effect: NoSchedule
       containers:
       - name: "rabbitmq"
-        image: "bitnami/rabbitmq:3.8.21"
+        image: "rabbitmq:3.9.5-management"
         imagePullPolicy: "IfNotPresent"
         ports:
         - containerPort: 15672  
         - containerPort: 5672  
-        env:
-        - name: "RABBITMQ_USERNAME"
-          value: "root"
-        - name: "RABBITMQ_PASSWORD"
-          value: "onceas" 
         volumeMounts:
         - name: "rabbit-persistent-storage"
-          mountPath: "/bitnami"
+          mountPath: "/var/lib/rabbitmq"
       volumes: 
       - name: "rabbit-persistent-storage"
         hostPath:
