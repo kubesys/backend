@@ -101,6 +101,14 @@ public class KubeMirror {
 	public KubeMirror fromSource(String[] kinds) throws Exception {
 		for (String kind : kinds) {
 			this.sources.add(kind);
+			KubernetesRuleBase ruleBase = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase();
+			String table = ruleBase.getName(kind);
+
+			if (table.contains("/") || table.contains("-")) {
+				continue;
+			}
+			deleteTableIfExit(table);
+			sqlMapper.createTable(table);
 		}
 		return this;
 	}
@@ -154,16 +162,15 @@ public class KubeMirror {
 		KubernetesRuleBase ruleBase = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase();
 		String table = ruleBase.getName(kind);
 
-		if (table.contains("/") || table.contains("-")) {
-			return;
+		try {
+			m_logger.info("starting Watcher " + kind);
+			SourceToSink watcher = new SourceToSink(kind, table, this);
+			watchers.put(table, sqlMapper.getKubeClient().watchResources(kind, watcher));
+			m_logger.info("Watcher " + kind + " is working");
+		} catch (Exception ex) {
+			m_logger.info("fail to start Watcher " + kind);
+			m_logger.severe(ex.getMessage());
 		}
-		
-		deleteTableIfExit(table);
-		sqlMapper.createTable(table);
-
-		m_logger.info("fullname is " + kind);
-		SourceToSink watcher = new SourceToSink(kind, table, this);
-		watchers.put(table, sqlMapper.getKubeClient().watchResources(kind, watcher));
 	}
 
 	/**
@@ -271,6 +278,7 @@ public class KubeMirror {
 						getGroup(json),
 						createDateTime(json),
 						currentDateTime(),
+//						json.toPrettyString());
 						KubeUtils.getJsonWithoutAnotation(json));
 				m_logger.info("insert object  " + json + " successfully.");
 				
@@ -284,8 +292,7 @@ public class KubeMirror {
 				}
 				
 			} catch (Exception e) {
-				e.printStackTrace();
-				m_logger.severe("fail to insert object :" + json + ". Becasue: " + e);
+				m_logger.severe("fail to insert object :" + json + " in table " + table + ". Becasue: " + e);
 			}
 			
 		}
@@ -298,6 +305,7 @@ public class KubeMirror {
 						KubeUtils.getNamespace(json),
 						getGroup(json),
 						currentDateTime(),
+//						json.toPrettyString());
 						KubeUtils.getJsonWithoutAnotation(json));
 				m_logger.info("update object  " + json + " successfully.");
 			} catch (Exception e) {

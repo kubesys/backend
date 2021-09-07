@@ -28,12 +28,12 @@
 			<artifactId>datafrk-postgres</artifactId>
 			<version>${datafrk.version}</version>
 		</dependency>
-		
-		<dependency>
+
+		<!-- <dependency>
 			<groupId>io.github.kubesys</groupId>
 			<artifactId>datafrk-mysql</artifactId>
 			<version>${datafrk.version}</version>
-		</dependency>
+		</dependency> -->
 	</dependencies>
 
 	<repositories>
@@ -44,7 +44,7 @@
 		</repository>
 	</repositories>
 
-<build>
+	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
