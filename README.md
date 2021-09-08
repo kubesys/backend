@@ -31,19 +31,24 @@ bash run.sh
 ### Config as you want (optional)
 
 ```
+// both runtime-mirror and api-mapper
 jdbcType=postgres // (postgres or mysql)
 jdbcDriver=org.postgresql.Driver //optional, default is 'org.postgresql.Driver'
-
-// jdbc:postgresql://127.0.0.1:5432/kube
 jdbcHost=127.0.0.1 // optional, default is 'kube-database.kube-system'
 jdbcPort=5432  // optional, postgres is 5432, mysql is 3306
 jdbcDB=kube  // optional, default is 'kube'
-
 jdbcUser=postgres   // optional, postgres is 'postgres', mysql is 'root'
 jdbcPassword=onceas // optional, default is 'onceas'
 
+// both runtime-mirror and api-mapper
 kubeToken=xxx     // see project kubernetes-client-java
 kubeUrl=https://39.100.71.73:6443     // see project kubernetes-client-java
+
+// just for runtime-mirror
+amqpHost=192.168.90.78
+amqpPassword=guest
+amqpPort=30304
+amqpUser=guest
 ```
 
 ## Architecture
@@ -61,3 +66,4 @@ and deploy a RuntimMirror component for each Kubernetes cluster.
 
 - 2.0.x: support MQ
   - 2.0.1: merge codes from [kubernetes-mirror](https://github.com/syswu/kubernetes-mirror) and [kubernetes-api-mapper](https://github.com/syswu/kubernetes-api-mapper) 
+  - 2.0.2: support AMQP and generate default frontend
