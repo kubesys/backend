@@ -33,6 +33,7 @@ public abstract class IncludedAMQPWatcher extends KubernetesWatcher {
 	public void doAdded(JsonNode node) {
 		ObjectNode json = new ObjectMapper().createObjectNode();
 		json.put("type", "ADDED");
+		json.put("from", SQLMapper.getDatabase());
 		json.set("data", node);
 		if (this.msgClient != null) {
 			this.msgClient.send(json);
@@ -45,6 +46,7 @@ public abstract class IncludedAMQPWatcher extends KubernetesWatcher {
 	public void doModified(JsonNode node) {
 		ObjectNode json = new ObjectMapper().createObjectNode();
 		json.put("type", "UPDATED");
+		json.put("from", SQLMapper.getDatabase());
 		json.set("data", node);
 		if (this.msgClient != null) {
 			this.msgClient.send(json);
@@ -57,6 +59,7 @@ public abstract class IncludedAMQPWatcher extends KubernetesWatcher {
 	public void doDeleted(JsonNode node) {
 		ObjectNode json = new ObjectMapper().createObjectNode();
 		json.put("type", "DELETED");
+		json.put("from", SQLMapper.getDatabase());
 		json.set("data", node);
 		if (this.msgClient != null) {
 			this.msgClient.send(json);

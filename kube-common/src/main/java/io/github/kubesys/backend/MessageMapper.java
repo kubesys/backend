@@ -29,12 +29,28 @@ public class MessageMapper {
 	
 	public static String DEFAULT_PORT     = "5672";
 	
+	public static String DEFAULT_QUEUE    = "event";
+	
 	protected final String queue;
 	
 	protected Channel channel;
 	
-	public MessageMapper(String queue) throws Exception {
-		this(queue, createChannel());
+	
+	public MessageMapper() throws Exception {
+		this(DEFAULT_QUEUE, createChannel(), true);
+	}
+	
+	public MessageMapper(boolean deleted) throws Exception {
+		this(DEFAULT_QUEUE, createChannel(), deleted);
+	}
+	
+	public MessageMapper(String queue, Channel channel, boolean deleted) throws Exception {
+		this.queue = queue;
+		this.channel = channel;
+		if (deleted) {
+			this.channel.queueDelete(queue);
+		}
+		this.channel.queueDeclare(queue, true, false, false, null);
 	}
 
 	public static Channel createChannel() {
@@ -52,14 +68,11 @@ public class MessageMapper {
 		}
 	}
 	
-	public MessageMapper(String queue, Channel channel) throws Exception {
-		this.queue = queue;
-		this.channel = channel;
-		this.channel.queueDelete(queue);
-		this.channel.queueDeclare(queue, false, false, false, null);
-		
-	}
 	
+	public Channel getChannel() {
+		return channel;
+	}
+
 	public static String getUsername() {
 		String user = System.getenv("amqpUser");
 		return user == null ? DEFAULT_USERNAME : user;
