@@ -178,7 +178,7 @@ public class KubeMirror {
 			m_logger.info("Watcher " + kind + " is working");
 		} catch (Exception ex) {
 			m_logger.info("fail to start Watcher " + kind);
-			m_logger.severe(ex.getMessage());
+			m_logger.severe(ex.toString());
 		}
 	}
 
