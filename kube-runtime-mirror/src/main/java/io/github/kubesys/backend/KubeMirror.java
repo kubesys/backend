@@ -18,7 +18,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.github.kubesys.kubeclient.KubernetesCRDWacther;
 import io.github.kubesys.kubeclient.KubernetesClient;
 import io.github.kubesys.kubeclient.KubernetesConstants;
-import io.github.kubesys.kubeclient.KubernetesWatcher;
 import io.github.kubesys.kubeclient.core.KubernetesRuleBase;
 
 
@@ -43,6 +42,11 @@ public class KubeMirror {
 	 */
 	protected SQLMapper sqlMapper;
 	
+	/**
+	 * msgMapper
+	 */
+	protected MessageMapper msgMapper;
+	
 	
 	/**
 	 * threads
@@ -60,6 +64,7 @@ public class KubeMirror {
 	public KubeMirror(KubernetesClient kubeClient) throws Exception {
 		try {
 			this.sqlMapper = new SQLMapper(kubeClient);
+			this.msgMapper = new MessageMapper(SQLMapper.getDatabase());
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			System.exit(1);
@@ -173,7 +178,7 @@ public class KubeMirror {
 
 		try {
 			m_logger.info("starting Watcher " + kind);
-			SourceToSink watcher = new SourceToSink(kind, table, this);
+			SourceToSink watcher = new SourceToSink(kind, table, this, new MessageMapper(SQLMapper.getDatabase()));
 			watchers.put(table, sqlMapper.getKubeClient().watchResources(kind, watcher));
 			m_logger.info("Watcher " + kind + " is working");
 		} catch (Exception ex) {
@@ -229,8 +234,8 @@ public class KubeMirror {
 	}
 
 	public boolean beenWatched(String kind) {
-		String table = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase().getName(kind);
-		return watchers.containsKey(table);
+		return watchers.containsKey(sqlMapper.getKubeClient()
+				.getAnalyzer().getConvertor().getRuleBase().getName(kind));
 	}
 
 	public KubernetesClient getKubeClient() {
@@ -246,7 +251,7 @@ public class KubeMirror {
 	 * @author wuheng
 	 * @since 2019.4.20
 	 */
-	public static class SourceToSink extends KubernetesWatcher {
+	public static class SourceToSink extends IncludedAMQPWatcher {
 
 		public static final Logger m_logger = Logger.getLogger(SourceToSink.class.getName());
 
@@ -270,8 +275,8 @@ public class KubeMirror {
 		 */
 		protected final KubernetesCRDWacther crdWatcher;
 		
-		public SourceToSink(String kind, String table, KubeMirror kubeMirror) {
-			super(kubeMirror.getKubeClient());
+		public SourceToSink(String kind, String table, KubeMirror kubeMirror, MessageMapper msgMapper) throws Exception {
+			super(kubeMirror.getKubeClient(), msgMapper);
 			this.kind = kind;
 			this.table = table;
 			this.kubeMirror = kubeMirror;
@@ -280,7 +285,7 @@ public class KubeMirror {
 
 		@Override
 		public void doAdded(JsonNode json) {
-			
+			super.doAdded(json);
 			try {
 				kubeMirror.getSqlClient().insertObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
@@ -308,7 +313,7 @@ public class KubeMirror {
 
 		@Override
 		public void doModified(JsonNode json) {
-			
+			super.doModified(json);
 			try {
 				kubeMirror.getSqlClient().updateObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
@@ -325,6 +330,7 @@ public class KubeMirror {
 
 		@Override
 		public void doDeleted(JsonNode json) {
+			super.doDeleted(json);
 			try {
 				kubeMirror.getSqlClient().deleteObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
@@ -351,7 +357,7 @@ public class KubeMirror {
 		public void doClose() {
 			try {
 				client.watchResources(kind, new SourceToSink(
-						kind, table, kubeMirror));
+						kind, table, kubeMirror, msgClient));
 			} catch (Exception e) {
 				System.exit(1);
 			}

@@ -14,6 +14,7 @@
 	<properties>
 		<kubeclient.version>2.0.5</kubeclient.version>
 		<datafrk.version>2.0.3</datafrk.version>
+		<mq.version>5.13.1</mq.version>
 	</properties>
 
 	<dependencies>
@@ -28,6 +29,13 @@
 			<artifactId>datafrk-postgres</artifactId>
 			<version>${datafrk.version}</version>
 		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/com.rabbitmq/amqp-client -->
+		<dependency>
+		    <groupId>com.rabbitmq</groupId>
+		    <artifactId>amqp-client</artifactId>
+		    <version>${mq.version}</version>
+		</dependency>	
 
 		<!-- <dependency>
 			<groupId>io.github.kubesys</groupId>

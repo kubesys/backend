@@ -143,7 +143,7 @@ public class SQLMapper {
 		Properties props = createProperties();
 		
 		DataContext fake = createDataContext(props);
-		String db = getValue(System.getenv("jdbcDB"), "kube");
+		String db = getDatabase();
 		if (!fake.checkDababase(createCheckDatabase(db))) {
 			fake.createDatabase(createCreateDatabase(db));
 		}
@@ -151,6 +151,10 @@ public class SQLMapper {
 		
 		props.put("druid.url", realUrl(props.getProperty("druid.url"), db)); 
 		return createDataContext(props);
+	}
+
+	public static String getDatabase() {
+		return getValue(System.getenv("jdbcDB"), "kube");
 	}
 	
 	private static DataContext createDataContext(Properties props) {
