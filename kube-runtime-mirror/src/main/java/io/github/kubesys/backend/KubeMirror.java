@@ -4,9 +4,11 @@
 package io.github.kubesys.backend;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -70,13 +72,17 @@ public class KubeMirror {
 	 * @throws Exception                     exception
 	 */
 	public KubeMirror fromSources() throws Exception {
+		List<String> fullKinds = new ArrayList<>();
 		try {
-			for (String kind : sqlMapper.getKubeClient().getAnalyzer().getConvertor()
-						.getRuleBase().getApiPrefixMapping().keySet()) {
-				this.sources.add(kind);
+			for (List<String> fullkinds : sqlMapper.getKubeClient().getAnalyzer()
+					.getConvertor().getRuleBase().getFullKinds().values()) {
+				for (String fullKind : fullkinds) {
+					fullKinds.add(fullKind);
+				}
 			}
+			return fromSource(fullKinds.toArray(new String[] {}));
 		} catch (Exception ex) {
-			m_logger.severe("wrong token, or token with lower permissions, or unwatchable resources ");
+			m_logger.severe(ex.toString());
 			System.exit(1);
 		}
 
@@ -84,29 +90,32 @@ public class KubeMirror {
 	}
 	
 	/**
-	 * @param  kind                          kind
+	 * @param  fullKind                      kind
 	 * @return                               mirror
 	 * @throws Exception                     exception
 	 */
-	public KubeMirror fromSource(String kind) throws Exception {
-		this.sources.add(kind);
-		return this;
+	public KubeMirror fromSource(String fullKind) throws Exception {
+		String[] fullkinds = new String[1];
+		fullkinds[0] = fullKind;
+		return fromSource(fullkinds);
 	}
 	
 	/**
-	 * @param  kinds                         kinds
+	 * @param  fullkinds                     kinds
 	 * @return                               mirror
 	 * @throws Exception                     exception
 	 */
-	public KubeMirror fromSource(String[] kinds) throws Exception {
-		for (String kind : kinds) {
-			this.sources.add(kind);
-			KubernetesRuleBase ruleBase = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase();
-			String table = ruleBase.getName(kind);
+	public KubeMirror fromSource(String[] fullkinds) throws Exception {
+		for (String fullkind : fullkinds) {
+			this.sources.add(fullkind);
+			
+			String table = sqlMapper.getKubeClient().getAnalyzer()
+					.getConvertor().getRuleBase().getName(fullkind);
 
 			if (table.contains("/") || table.contains("-")) {
 				continue;
 			}
+			
 			deleteTableIfExit(table);
 			sqlMapper.createTable(table);
 		}
