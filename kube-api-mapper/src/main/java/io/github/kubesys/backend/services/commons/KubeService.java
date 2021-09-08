@@ -19,6 +19,7 @@ import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
 import io.github.kubesys.kubeclient.KubernetesConstants;
+import io.github.kubesys.kubeclient.KubernetesWriter;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -34,6 +35,92 @@ import io.swagger.annotations.ApiParam;
 @Api(value = "基于Kubernetes规范的资源生命周期管理")
 public class KubeService extends HttpBodyHandler {
 
+	
+	public final static Map<String, String> DEF_FRONTEND_MAPPER = new HashMap<>();
+	
+	protected final KubernetesWriter kubeWriter = new KubernetesWriter();
+	
+	public final static String DEFAULT_YAML_DIR = "/var/lib/doslab/yamls";
+	
+	static {
+		DEF_FRONTEND_MAPPER.put("desc", "{\r\n"
+				+ "        \"metadata\":{\r\n"
+				+ "                \"name\": \"$NAME$\",\r\n"
+				+ "                \"namespace\": \"default\"\r\n"
+				+ "        },\r\n"
+				+ "        \"apiVersion\":\"doslab.io/v1\",\r\n"
+				+ "        \"kind\":\"Frontend\",\r\n"
+				+ "        \"spec\":{\r\n"
+				+ "                \"desc\": \"这是一个用户自定义资源。\",\r\n"
+				+ "                \"type\": \"description\"\r\n"
+				+ "        }\r\n"
+				+ "}");
+		DEF_FRONTEND_MAPPER.put("action", "{\r\n"
+				+ "        \"metadata\":{\r\n"
+				+ "                \"name\": \"$NAME$\",\r\n"
+				+ "                \"namespace\": \"default\"\r\n"
+				+ "        },\r\n"
+				+ "        \"apiVersion\":\"doslab.io/v1\",\r\n"
+				+ "        \"kind\":\"Frontend\",\r\n"
+				+ "        \"spec\":{\r\n"
+				+ "                \"data\":[\r\n"
+				+ "                        {\r\n"
+				+ "                                \"type\":\"delete\",\r\n"
+				+ "                                \"key\":\"删除\"\r\n"
+				+ "                        },\r\n"
+				+ "                        {\r\n"
+				+ "                                \"type\":\"update\",\r\n"
+				+ "                                \"key\":\"更新\"\r\n"
+				+ "                        }\r\n"
+				+ "                ],\r\n"
+				+ "                \"type\":\"action\"\r\n"
+				+ "        }\r\n"
+				+ "}");
+		DEF_FRONTEND_MAPPER.put("formsearch", "{\r\n"
+				+ "        \"metadata\": {\r\n"
+				+ "                \"name\": \"$NAME$\",\r\n"
+				+ "                \"namespace\": \"default\"\r\n"
+				+ "        },\r\n"
+				+ "        \"apiVersion\": \"doslab.io/v1\",\r\n"
+				+ "        \"kind\": \"Frontend\",\r\n"
+				+ "        \"spec\": {\r\n"
+				+ "                \"data\": {\r\n"
+				+ "                        \"items\": [{\r\n"
+				+ "                                \"label\": \"名称:\",\r\n"
+				+ "                                \"path\": \"metadata##name\",\r\n"
+				+ "                                \"type\": \"textbox\"\r\n"
+				+ "                        }]\r\n"
+				+ "                },\r\n"
+				+ "                \"type\": \"formsearch\"\r\n"
+				+ "        }\r\n"
+				+ "}");
+		DEF_FRONTEND_MAPPER.put("table", "{\r\n"
+				+ "\r\n"
+				+ "	\"apiVersion\": \"doslab.io/v1\",\r\n"
+				+ "	\"kind\": \"Frontend\",\r\n"
+				+ "	\"metadata\": {\r\n"
+				+ "                \"name\": \"$NAME$\",\r\n"
+				+ "                \"namespace\": \"default\"\r\n"
+				+ "	},\r\n"
+				+ "	\"spec\": {\r\n"
+				+ "		\"data\": [{\r\n"
+				+ "				\"label\": \"资源名\",\r\n"
+				+ "				\"row\": \"metadata.name\"\r\n"
+				+ "			},\r\n"
+				+ "			{\r\n"
+				+ "				\"label\": \"创建时间\",\r\n"
+				+ "				\"row\": \"metadata.creationTimestamp\"\r\n"
+				+ "			},\r\n"
+				+ "			{\r\n"
+				+ "				\"kind\": \"action\",\r\n"
+				+ "				\"label\": \"更多操作\"\r\n"
+				+ "			}\r\n"
+				+ "		],\r\n"
+				+ "		\"type\": \"table\"\r\n"
+				+ "	}\r\n"
+				+ "}");
+	}
+	
 	/**
 	 * @param token token
 	 * @param json  json
@@ -156,6 +243,24 @@ public class KubeService extends HttpBodyHandler {
 			if ((kind.equals("Template") || kind.equals("doslab.io.Template")) && name.endsWith("create")) {
 				return getTemplate(token, name); 
 			}
+			if (kind.equals("Frontend") || kind.equals("doslab.io.Frontend")) {
+				int idx = name.indexOf("-");
+				if (idx != -1) {
+					String key = name.substring(0, idx);
+					String json = DEF_FRONTEND_MAPPER.get(key).replace("$NAME$", name.toLowerCase());
+					if (json != null) {
+						JsonNode result = new ObjectMapper().readTree(json);
+						ClientUtil.getClient(token).createResource(result);
+						try {
+							kubeWriter.writeAsYaml(DEFAULT_YAML_DIR, result);
+						} catch (Exception e) {
+							kubeWriter.writeAsYaml("yamls/" + name.toLowerCase(), result);
+						}
+						return result;
+					}
+				}
+			}
+			
 			throw new Exception("获取创建资源失败, 命名空间" + namespace + "类型为" + kind + "的资源" + name +"不存在. ");
 		} finally {
 			KubeUtil.log(token, "/kube/getResource", kind, name, start);

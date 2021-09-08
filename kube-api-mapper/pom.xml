@@ -12,8 +12,7 @@
 	<description>kube-api-mapper</description>
 
 	<properties>
-		<kubehttp.version>2.2.0</kubehttp.version>
-		<kubeclient.version>2.0.4</kubeclient.version>
+		<kubehttp.version>2.2.1</kubehttp.version>
 	</properties>
 
 	<dependencies>
@@ -23,12 +22,6 @@
 			<version>${kubehttp.version}</version>
 		</dependency>
 		
-		<dependency>
-			<groupId>io.github.kubesys</groupId>
-			<artifactId>kubernetes-client</artifactId>
-			<version>${kubeclient.version}</version>
-		</dependency>
-
 		<dependency>
 			<groupId>io.github.kubesys</groupId>
 			<artifactId>kube-common</artifactId>
