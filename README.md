@@ -15,6 +15,23 @@ This project is based on the following softwares.
 |     alibaba druid             |  https://github.com/alibaba/druid                |  Apache License 2.0 |
 
 
+
+This project should work with the following components.
+
+- [Kubernetes](https://github.com/kubernetes/kubernetes)
+- [kube-frontend](https://github.com/kubesys/kube-frontend)
+
+
+If these componets are not working, using ['kubeinit'](https://github.com/kubesys/kube-installer) tool.
+
+```
+kubeinst init-env
+kubeinst init-kube
+kubeinst init-backend
+kubeinst init-frontend
+````
+
+
 ## Authos
 
 - wuheng@iscas.ac.cn
