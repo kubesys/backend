@@ -3,17 +3,20 @@
  */
 package io.github.kubesys.backend.services;
 
+import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Properties;
 
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.kubesys.httpfrk.core.HttpController;
 import com.github.kubesys.httpfrk.core.HttpResponseWrapper;
+
+import io.github.kubesys.backend.utils.KubeUtil;
 
 
 /**
@@ -34,13 +37,19 @@ import com.github.kubesys.httpfrk.core.HttpResponseWrapper;
 @ComponentScan
 public class ApiMapperController extends HttpController  {
 
-	public static Map<String, String> loggerMapper = new HashMap<>();
+	public static Properties props = new Properties();
 	
+	static {
+		try {
+			props.load(new FileInputStream(ResourceUtils.getFile("logInfo")));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	
 	@Override
 	protected String doResponse(String servletPath, JsonNode body) throws Exception {
 		m_logger.info("Begin to deal with " + servletPath);
-
 		long start = System.currentTimeMillis();
 		Method hanlder = handlers.geHandler(servletPath);
 		try {
@@ -64,8 +73,15 @@ public class ApiMapperController extends HttpController  {
 			}
 			throw new Exception(sb.toString());
 		} finally {
-			long end = System.currentTimeMillis();
-			m_logger.info(servletPath + "," + (end - start) + "ms");
+			try {
+				if (body.has("data")) {
+					KubeUtil.log("default", servletPath, body.get("data").get("kind").asText(), body.get("data").get("name").asText(), start);
+				} else {
+					KubeUtil.log("default", servletPath, body.get("kind").asText(), body.get("name").asText(), start);
+				}
+			} catch (Exception ex) {
+				
+			}
 		}
 	}
 }

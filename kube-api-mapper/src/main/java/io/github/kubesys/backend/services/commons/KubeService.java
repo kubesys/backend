@@ -17,7 +17,6 @@ import com.github.kubesys.tools.annotations.ServiceDefinition;
 
 import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.FrontendUtils;
-import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
 import io.github.kubesys.kubeclient.KubernetesConstants;
 import io.swagger.annotations.Api;
@@ -74,16 +73,7 @@ public class KubeService extends HttpBodyHandler {
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode json)
 			throws Exception {
 
-		long start = System.currentTimeMillis();
-		
-		try {
-			return ClientUtil.getClient(token).createResource(json);
-		} catch (Exception ex) {
-			throw new Exception("创建" + getKindByJson(json) + "资源" + getName(json)  + "失败, 不符合Kubernetes语法.");
-		} finally {
-			KubeUtil.log(token, "/kube/createResource", getKindByJson(json), getName(json), start);
-		}
-
+		return ClientUtil.getClient(token).createResource(json);
 	}
 
 	/**
@@ -100,15 +90,7 @@ public class KubeService extends HttpBodyHandler {
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode json)
 			throws Exception {
 		
-		long start = System.currentTimeMillis();
-		
-		try {
-			return ClientUtil.getClient(token).updateResource(json);
-		} catch (Exception ex) {
-			throw new Exception("更新" + getKindByJson(json) + "资源" + getName(json) + "失败, 包含无法更新的字段.");
-		} finally {
-			KubeUtil.log(token, "/kube/updateResource", getKindByJson(json), getName(json), start);
-		}
+		return ClientUtil.getClient(token).updateResource(json);
 	}
 
 	/**
@@ -124,19 +106,10 @@ public class KubeService extends HttpBodyHandler {
 			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode json)
 			throws Exception {
-		
-		long start = System.currentTimeMillis();
-		
 		try {
-			try {
-				return ClientUtil.getClient(token).createResource(json);
-			} catch (Exception e) {
-				return ClientUtil.getClient(token).updateResource(json);
-			}
-		} catch (Exception ex) {
-			throw new Exception("强制创建资源失败, 不符合Kubernetes语法或者字段无法更新.");
-		} finally {
-			KubeUtil.log(token, "/kube/createOrUpdateResource", getKindByJson(json), getName(json), start);
+			return ClientUtil.getClient(token).createResource(json);
+		} catch (Exception e) {
+			return ClientUtil.getClient(token).updateResource(json);
 		}
 	}
 
@@ -158,15 +131,7 @@ public class KubeService extends HttpBodyHandler {
 			@ApiParam(value = "资源名", required = true, example = "test") String name) 
 			throws Exception {
 
-		long start = System.currentTimeMillis();
-		
-		try {
-			return ClientUtil.getClient(token).deleteResource(kind, namespace, name);
-		} catch (Exception ex) {
-			throw new Exception("删除资源失败, 命名空间" + namespace + "类型为" + kind + "的资源" + name +"不存在. ");
-		} finally {
-			KubeUtil.log(token, "/kube/deleteResource", kind, name, start);
-		}
+		return ClientUtil.getClient(token).deleteResource(kind, namespace, name);
 	}
 
 	/**
@@ -186,7 +151,6 @@ public class KubeService extends HttpBodyHandler {
 			@ApiParam(value = "命名空间", required = true, example = "字符串或者\"\"") String namespace,
 			@ApiParam(value = "资源名", required = true, example = "test") String name) throws Exception {
 		
-		long start = System.currentTimeMillis();
 		
 		try {
 			return namespace == null ? ClientUtil.getClient(token).getResource(kind, name.toLowerCase())
@@ -210,8 +174,6 @@ public class KubeService extends HttpBodyHandler {
 			}
 			
 			throw new Exception("获取创建资源失败, 命名空间" + namespace + "类型为" + kind + "的资源" + name +"不存在. ");
-		} finally {
-			KubeUtil.log(token, "/kube/getResource", kind, name, start);
 		}
 	}
 
@@ -240,9 +202,6 @@ public class KubeService extends HttpBodyHandler {
 			@ApiParam(value = "查询条件", required = false, example = "根据json格式，如<metadata#name,henry>") Map<String, String> labels)
 			throws Exception {
 
-		long start = System.currentTimeMillis();
-
-		try {
 			try {
 				// check permissions
 				ClientUtil.getClient(token).listResources(kind, KubernetesConstants.VALUE_ALL_NAMESPACES, null, null, 1, null);
@@ -255,11 +214,6 @@ public class KubeService extends HttpBodyHandler {
 											getKind(kind), 
 											limit, page, 
 											(labels != null) ? labels : new HashMap<>());
-		} catch (Exception ex) {
-			throw new Exception("查询资源失败, 数据库宕机或者数据库中不存类型" + kind+ "对应的数据表.");
-		} finally {
-			KubeUtil.log(token, "/kube/listResources", kind, "all", start);
-		}
 	}
 
 	
@@ -267,16 +221,11 @@ public class KubeService extends HttpBodyHandler {
 			String token,
 			JsonNode data)
 			throws Exception {
-		try {
 			return ClientUtil.sqlMapper().queryCount(
 						getTable(token, getFullKind(token, 
 								data.get("link").asText())),
 						data.get("tag").asText(),
 						data.get("value").asText());
-			
-		} catch (Exception ex) {
-			throw new Exception("强制创建资源失败, 不符合Kubernetes语法或者字段无法更新.");
-		} 
 	}
 	
 	public JsonNode queryResourceValue (
@@ -284,7 +233,6 @@ public class KubeService extends HttpBodyHandler {
 			JsonNode data)
 			throws Exception {
 		
-		try {
 			if (data.get("kind").asText().contains("ConfigMap")) {
 				return ClientUtil.getClient(token).getResource(
 						data.get("kind").asText(), 
@@ -301,10 +249,6 @@ public class KubeService extends HttpBodyHandler {
 				}
 				return json;
 			}
-		} catch (Exception ex) {
-			throw new Exception("强制创建资源失败, 不符合Kubernetes语法或者字段无法更新.");
-		} 
-		
 	}
 	
 	/**
@@ -312,7 +256,7 @@ public class KubeService extends HttpBodyHandler {
 	 * @return            json
 	 * @throws Exception 
 	 */
-	public JsonNode getComponents(
+	protected JsonNode getComponents(
 			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token
 			) throws Exception {
 		
@@ -372,22 +316,7 @@ public class KubeService extends HttpBodyHandler {
 		return node;
 		
 	}
-	/**
-	 * @param json                  json
-	 * @return                      name
-	 */
-	protected String getName(JsonNode json) {
-		return json.get("metadata").get("name").asText();
-	}
 
-	/**
-	 * @param json                  json
-	 * @return                      kind
-	 */
-	protected String getKindByJson(JsonNode json) {
-		return json.get("kind").asText();
-	}
-	
 	/**
 	 * @param token                 token
 	 * @param userInputKind         userInputKind
