@@ -7,6 +7,7 @@ public class SplitTest {
 		for (String ss : s.split("\\.")) {
 			System.out.println(ss);
 		}
+		System.out.println(System.getProperty("user.dir"));
 	}
 
 }

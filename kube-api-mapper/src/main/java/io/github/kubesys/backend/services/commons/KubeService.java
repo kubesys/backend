@@ -16,19 +16,35 @@ import com.github.kubesys.httpfrk.core.HttpBodyHandler;
 import com.github.kubesys.tools.annotations.ServiceDefinition;
 
 import io.github.kubesys.backend.utils.ClientUtil;
+import io.github.kubesys.backend.utils.FrontendUtils;
 import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
 import io.github.kubesys.kubeclient.KubernetesConstants;
-import io.github.kubesys.kubeclient.KubernetesWriter;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 
 /**
- * @author wuheng@otcaix.iscas.ac.cn
- * @author chace
- * @since 2019.10.29
+ * @author wuheng@iscas.ac.cn
+ * @since 2.0.3
  *
+ * according to Kubernetes' API specification, providing the following APIs
+ * 
+ * - invoking Kubernetes
+ *    - CreateResource
+ *    - BindResource
+ *    - UpdateResource
+ *    - UpdateResourceStatus
+ *    - GetResource
+ *    - DeleteResource
+ *    - WatchResource
+ *    - WatchResources
+ * - invoking Database
+ *    - ListResources
+ *    - queryResourceCount
+ *    - queryResourceValue
+ * - online handling
+ *    - getMetadata
  */
 
 @ServiceDefinition
@@ -36,96 +52,21 @@ import io.swagger.annotations.ApiParam;
 public class KubeService extends HttpBodyHandler {
 
 	
-	public final static Map<String, String> DEF_FRONTEND_MAPPER = new HashMap<>();
-	
-	protected final KubernetesWriter kubeWriter = new KubernetesWriter();
-	
-	public final static String DEFAULT_YAML_DIR = "/var/lib/doslab/yamls";
-	
-	static {
-		DEF_FRONTEND_MAPPER.put("desc", "{\r\n"
-				+ "        \"metadata\":{\r\n"
-				+ "                \"name\": \"$NAME$\",\r\n"
-				+ "                \"namespace\": \"default\"\r\n"
-				+ "        },\r\n"
-				+ "        \"apiVersion\":\"doslab.io/v1\",\r\n"
-				+ "        \"kind\":\"Frontend\",\r\n"
-				+ "        \"spec\":{\r\n"
-				+ "                \"desc\": \"这是一个用户自定义资源。\",\r\n"
-				+ "                \"type\": \"description\"\r\n"
-				+ "        }\r\n"
-				+ "}");
-		DEF_FRONTEND_MAPPER.put("action", "{\r\n"
-				+ "        \"metadata\":{\r\n"
-				+ "                \"name\": \"$NAME$\",\r\n"
-				+ "                \"namespace\": \"default\"\r\n"
-				+ "        },\r\n"
-				+ "        \"apiVersion\":\"doslab.io/v1\",\r\n"
-				+ "        \"kind\":\"Frontend\",\r\n"
-				+ "        \"spec\":{\r\n"
-				+ "                \"data\":[\r\n"
-				+ "                        {\r\n"
-				+ "                                \"type\":\"delete\",\r\n"
-				+ "                                \"key\":\"删除\"\r\n"
-				+ "                        },\r\n"
-				+ "                        {\r\n"
-				+ "                                \"type\":\"update\",\r\n"
-				+ "                                \"key\":\"更新\"\r\n"
-				+ "                        }\r\n"
-				+ "                ],\r\n"
-				+ "                \"type\":\"action\"\r\n"
-				+ "        }\r\n"
-				+ "}");
-		DEF_FRONTEND_MAPPER.put("formsearch", "{\r\n"
-				+ "        \"metadata\": {\r\n"
-				+ "                \"name\": \"$NAME$\",\r\n"
-				+ "                \"namespace\": \"default\"\r\n"
-				+ "        },\r\n"
-				+ "        \"apiVersion\": \"doslab.io/v1\",\r\n"
-				+ "        \"kind\": \"Frontend\",\r\n"
-				+ "        \"spec\": {\r\n"
-				+ "                \"data\": {\r\n"
-				+ "                        \"items\": [{\r\n"
-				+ "                                \"label\": \"名称:\",\r\n"
-				+ "                                \"path\": \"metadata##name\",\r\n"
-				+ "                                \"type\": \"textbox\"\r\n"
-				+ "                        }]\r\n"
-				+ "                },\r\n"
-				+ "                \"type\": \"formsearch\"\r\n"
-				+ "        }\r\n"
-				+ "}");
-		DEF_FRONTEND_MAPPER.put("table", "{\r\n"
-				+ "\r\n"
-				+ "	\"apiVersion\": \"doslab.io/v1\",\r\n"
-				+ "	\"kind\": \"Frontend\",\r\n"
-				+ "	\"metadata\": {\r\n"
-				+ "                \"name\": \"$NAME$\",\r\n"
-				+ "                \"namespace\": \"default\"\r\n"
-				+ "	},\r\n"
-				+ "	\"spec\": {\r\n"
-				+ "		\"data\": [{\r\n"
-				+ "				\"label\": \"资源名\",\r\n"
-				+ "				\"row\": \"metadata.name\"\r\n"
-				+ "			},\r\n"
-				+ "			{\r\n"
-				+ "				\"label\": \"创建时间\",\r\n"
-				+ "				\"row\": \"metadata.creationTimestamp\"\r\n"
-				+ "			},\r\n"
-				+ "			{\r\n"
-				+ "				\"kind\": \"action\",\r\n"
-				+ "				\"label\": \"更多操作\"\r\n"
-				+ "			}\r\n"
-				+ "		],\r\n"
-				+ "		\"type\": \"table\"\r\n"
-				+ "	}\r\n"
-				+ "}");
-	}
+	/*************************************************************************
+	 * 
+	 * 
+	 *       Invoking Kubernetes
+	 * 
+	 * 
+	 **************************************************************************/
 	
 	/**
-	 * @param token token
-	 * @param json  json
-	 * @return json
-	 * @throws Exception exception
+	 * see KubernetesClient.createResource
+	 * 
+	 * @param token                    token
+	 * @param json                     json
+	 * @return                         json
+	 * @throws Exception               exception
 	 */
 	@ApiOperation(value = "创建基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode createResource(
@@ -146,10 +87,12 @@ public class KubeService extends HttpBodyHandler {
 	}
 
 	/**
-	 * @param token token
-	 * @param json  json
-	 * @return json
-	 * @throws Exception exception
+	 * see KubernetesClient.updateResource
+	 * 
+	 * @param token                    token
+	 * @param json                     json
+	 * @return                         json
+	 * @throws Exception               exception
 	 */
 	@ApiOperation(value = "更新基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode updateResource(
@@ -169,10 +112,12 @@ public class KubeService extends HttpBodyHandler {
 	}
 
 	/**
-	 * @param token token
-	 * @param json  json
-	 * @return json
-	 * @throws Exception exception
+	 * see KubernetesClient.createResource and KubernetesClient.updateResource
+	 * 
+	 * @param token                    token
+	 * @param json                     json
+	 * @return                         json
+	 * @throws Exception               exception
 	 */
 	@ApiOperation(value = "创建或者更新基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode createOrUpdateResource(
@@ -196,17 +141,22 @@ public class KubeService extends HttpBodyHandler {
 	}
 
 	/**
-	 * @param token token
-	 * @param json  json
-	 * @return json
-	 * @throws Exception exception
+	 * see KubernetesClient.deleteResource
+	 * 
+	 * @param token                   token
+	 * @param kind                    kind
+	 * @param namespace               namespace
+	 * @param name                    name
+	 * @return json                   json
+	 * @throws Exception              exception
 	 */
 	@ApiOperation(value = "删除基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode deleteResource(
 			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
 			@ApiParam(value = "注册到Kubernetes类型", required = true, example = "Pod") String kind,
 			@ApiParam(value = "命名空间", required = true, example = "字符串或者\"\"") String namespace,
-			@ApiParam(value = "资源名", required = true, example = "test") String name) throws Exception {
+			@ApiParam(value = "资源名", required = true, example = "test") String name) 
+			throws Exception {
 
 		long start = System.currentTimeMillis();
 		
@@ -220,12 +170,14 @@ public class KubeService extends HttpBodyHandler {
 	}
 
 	/**
-	 * @param token     token
-	 * @param kind      kind
-	 * @param namespace namespace
-	 * @param name      name
-	 * @return json
-	 * @throws Exception exception
+	 * see KubernetesClient.getResource
+	 * 
+	 * @param token                   token
+	 * @param kind                    kind
+	 * @param namespace               namespace
+	 * @param name                    name
+	 * @return json                   json
+	 * @throws Exception              exception
 	 */
 	@ApiOperation(value = "获取基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode getResource(
@@ -247,15 +199,11 @@ public class KubeService extends HttpBodyHandler {
 				int idx = name.indexOf("-");
 				if (idx != -1) {
 					String key = name.substring(0, idx);
-					String json = DEF_FRONTEND_MAPPER.get(key).replace("$NAME$", name.toLowerCase());
+					String json = FrontendUtils.getJson(key, name);
 					if (json != null) {
 						JsonNode result = new ObjectMapper().readTree(json);
 						ClientUtil.getClient(token).createResource(result);
-						try {
-							kubeWriter.writeAsYaml(DEFAULT_YAML_DIR, result);
-						} catch (Exception e) {
-							kubeWriter.writeAsYaml("yamls/" + name.toLowerCase(), result);
-						}
+						FrontendUtils.writeAsYaml(result);
 						return result;
 					}
 				}
@@ -267,6 +215,15 @@ public class KubeService extends HttpBodyHandler {
 		}
 	}
 
+	
+	/*************************************************************************
+	 * 
+	 * 
+	 *       Invoking Database
+	 * 
+	 * 
+	 **************************************************************************/
+	
 	/**
 	 * @param token     token
 	 * @param kind      kind
@@ -381,17 +338,6 @@ public class KubeService extends HttpBodyHandler {
 		return new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(set));
 	}
 	
-	/**
-	 * @param token       token
-	 * @return            json
-	 * @throws Exception 
-	 */
-	public JsonNode getKinds(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token
-			) throws Exception {
-		
-		return ClientUtil.getClient(token).getFullKinds();
-	}
 	
 	/*********************************************************
 	 *    
