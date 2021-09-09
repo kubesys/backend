@@ -3,13 +3,10 @@
  */
 package io.github.kubesys.backend.services;
 
-import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Properties;
 
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,15 +34,15 @@ import io.github.kubesys.backend.utils.KubeUtil;
 @ComponentScan
 public class ApiMapperController extends HttpController  {
 
-	public static Properties props = new Properties();
-	
-	static {
-		try {
-			props.load(new FileInputStream(ResourceUtils.getFile("logInfo")));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+//	public static Properties props = new Properties();
+//	
+//	static {
+//		try {
+//			props.load(new FileInputStream(ResourceUtils.getFile("logInfo")));
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
 	
 	@Override
 	protected String doResponse(String servletPath, JsonNode body) throws Exception {

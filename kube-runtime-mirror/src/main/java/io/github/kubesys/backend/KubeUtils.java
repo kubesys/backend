@@ -5,7 +5,11 @@ package io.github.kubesys.backend;
 
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.github.kubesys.kubeclient.KubernetesClient;
+import io.github.kubesys.kubeclient.core.KubernetesRuleBase;
 
 /**
  * @author wuheng@iscas.ac.cn
@@ -106,5 +110,32 @@ public class KubeUtils {
 		JsonNode meta = json.get(YAML_METADATA);
 		return (meta.has(YAML_METADATA_NAMESPACE)) 
 				? meta.get(YAML_METADATA_NAMESPACE).asText() : "default";
+	}
+	
+	public static void createMeatadata(KubernetesClient client, String fullkind) {
+		KubernetesRuleBase ruleBase = client.getAnalyzer()
+				.				getConvertor().getRuleBase();
+		
+		ObjectNode json = new ObjectMapper().createObjectNode();
+		json.put("apiVersion", "doslab.io/v1");
+		json.put("kind", "Metadata");
+		
+		ObjectNode meta = new ObjectMapper().createObjectNode();
+		meta.put("name", fullkind.toLowerCase());
+		json.set("metadata", meta);
+		
+		ObjectNode spec = new ObjectMapper().createObjectNode();
+		spec.put("kind", ruleBase.getKind(fullkind));
+		spec.put("fullkind", fullkind);
+		spec.put("group", ruleBase.getGroup(fullkind));
+		spec.put("version", ruleBase.getVersion(fullkind));
+		spec.put("api", ruleBase.getApiPrefix(fullkind));
+		spec.put("namespaced", ruleBase.isNamespaced(fullkind) ? "Namespace" : "Cluster");
+		json.set("spec", spec);
+		
+		try {
+			client.createResource(json);
+		} catch (Exception e) {
+		}
 	}
 }

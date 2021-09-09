@@ -79,8 +79,9 @@ public class KubeMirror {
 	public KubeMirror fromSources() throws Exception {
 		List<String> fullKinds = new ArrayList<>();
 		try {
-			for (List<String> fullkinds : sqlMapper.getKubeClient().getAnalyzer()
-					.getConvertor().getRuleBase().getFullKinds().values()) {
+			KubernetesRuleBase ruleBase = sqlMapper.getKubeClient().getAnalyzer()
+					.getConvertor().getRuleBase();
+			for (List<String> fullkinds : ruleBase.getFullKinds().values()) {
 				for (String fullKind : fullkinds) {
 					fullKinds.add(fullKind);
 				}
@@ -123,6 +124,8 @@ public class KubeMirror {
 			
 			deleteTableIfExit(table);
 			sqlMapper.createTable(table);
+			
+			KubeUtils.createMeatadata(getKubeClient(), fullkind);
 		}
 		return this;
 	}
@@ -303,6 +306,7 @@ public class KubeMirror {
 					String kind = names.get(KubernetesConstants.KUBE_SPEC_NAMES_KIND).asText();
 					String group = spec.get("group").asText();
 					kubeMirror.addSource(group + "." + kind);
+					KubeUtils.createMeatadata(kubeMirror.getKubeClient(), group + "." + kind);
 				}
 				
 			} catch (Exception e) {
@@ -319,7 +323,6 @@ public class KubeMirror {
 						KubeUtils.getNamespace(json),
 						getGroup(json),
 						currentDateTime(),
-//						json.toPrettyString());
 						KubeUtils.getJsonWithoutAnotation(json));
 				m_logger.info("update object  " + json + " successfully.");
 			} catch (Exception e) {
@@ -345,6 +348,7 @@ public class KubeMirror {
 					String kind = names.get(KubernetesConstants.KUBE_SPEC_NAMES_KIND).asText();
 					String group = spec.get("group").asText();
 					kubeMirror.deleteSource(group + "." + kind);
+					kubeMirror.getKubeClient().deleteResource("doslab.io.Metadata", group + "." + kind);
 				}
 				
 			} catch (Exception e) {

@@ -3,6 +3,7 @@
  */
 package io.github.kubesys.backend.utils;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -60,8 +61,14 @@ public class FrontendUtils {
 				+ "		\"type\": \"table\"\r\n" + "	}\r\n" + "}");
 	}
 	
-	public static void writeAsYaml(JsonNode result) throws Exception {
-		kubeWriter.writeAsYaml(FrontendUtils.DEFAULT_YAML_DIR, result);
+	static {
+		if (!new File(FrontendUtils.DEFAULT_YAML_DIR).exists()) {
+			new File(FrontendUtils.DEFAULT_YAML_DIR).mkdirs();
+		}
+	}
+	
+	public static void writeAsYaml(String name, JsonNode result) throws Exception {
+		kubeWriter.writeAsYaml(FrontendUtils.DEFAULT_YAML_DIR + "/" + name, result);
 	}
 	
 	public static String getJson(String key, String name) {

@@ -157,6 +157,7 @@ public class KubeService extends HttpBodyHandler {
 			if ((kind.equals("Template") || kind.equals("doslab.io.Template")) && name.endsWith("create")) {
 				return getTemplate(token, name); 
 			}
+			
 			if (kind.equals("Frontend") || kind.equals("doslab.io.Frontend")) {
 				int idx = name.indexOf("-");
 				if (idx != -1) {
@@ -165,7 +166,7 @@ public class KubeService extends HttpBodyHandler {
 					if (json != null) {
 						JsonNode result = new ObjectMapper().readTree(json);
 						ClientUtil.getClient(token).createResource(result);
-						FrontendUtils.writeAsYaml(result);
+						FrontendUtils.writeAsYaml(name, result);
 						return result;
 					}
 				}
