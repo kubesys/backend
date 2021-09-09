@@ -151,10 +151,8 @@ public class KubeService extends HttpBodyHandler {
 			@ApiParam(value = "命名空间", required = true, example = "字符串或者\"\"") String namespace,
 			@ApiParam(value = "资源名", required = true, example = "test") String name) throws Exception {
 		
-		
 		try {
-			return namespace == null ? ClientUtil.getClient(token).getResource(kind, name.toLowerCase())
-					: ClientUtil.getClient(token).getResource(kind, namespace, name.toLowerCase());
+			return ClientUtil.getClient(token).getResource(kind, namespace, name.toLowerCase());
 		} catch (Exception ex) {
 			if ((kind.equals("Template") || kind.equals("doslab.io.Template")) && name.endsWith("create")) {
 				return getTemplate(token, name); 
@@ -187,11 +185,13 @@ public class KubeService extends HttpBodyHandler {
 	 **************************************************************************/
 	
 	/**
-	 * @param token     token
-	 * @param kind      kind
-	 * @param namespace namespace
-	 * @return json
-	 * @throws Exception exception
+	 * equal to see KubernetesClient.listResources
+	 * 
+	 * @param token                   token
+	 * @param kind                    kind
+	 * @param namespace               namespace
+	 * @return json                   json
+	 * @throws Exception              exception
 	 */
 	@ApiOperation(value = "按需查询基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode listResources(
@@ -217,44 +217,77 @@ public class KubeService extends HttpBodyHandler {
 	}
 
 	
+	/**
+	 * how many items.
+	 * 
+	 * @param token                    token
+	 * @param data                     data
+	 * @return                         json
+	 * @throws Exception               exception
+	 */
 	public JsonNode queryResourceCount (
-			String token,
-			JsonNode data)
+			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
+			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode data)
 			throws Exception {
-			return ClientUtil.sqlMapper().queryCount(
-						getTable(token, getFullKind(token, 
-								data.get("link").asText())),
-						data.get("tag").asText(),
-						data.get("value").asText());
-	}
-	
-	public JsonNode queryResourceValue (
-			String token,
-			JsonNode data)
-			throws Exception {
-		
-			if (data.get("kind").asText().contains("ConfigMap")) {
-				return ClientUtil.getClient(token).getResource(
-						data.get("kind").asText(), 
-						data.get("namespace").asText(), 
-						data.get("name").asText()).get("data");
-			} else {
-				ObjectNode json = new ObjectMapper().createObjectNode();
-				ArrayNode arrayNode = ClientUtil.sqlMapper().queryAll(
-						getTable(token, getFullKind(token, 
-								data.get("kind").asText())), 
-						data.get("field").asText());
-				for (int i = 0; i < arrayNode.size(); i++) {
-					json.put(arrayNode.get(i).asText(), arrayNode.get(i).asText());
-				}
-				return json;
-			}
+			
+		String fullKind = getFullKind(token, data.get("link").asText());
+		return ClientUtil.sqlMapper().queryCount(getTable(token, fullKind),
+						data.get("tag").asText(), data.get("value").asText());
 	}
 	
 	/**
-	 * @param token       token
-	 * @return            json
-	 * @throws Exception 
+	 * return Map<key, display value> for comobox
+	 * 
+	 * @param token                     token
+	 * @param data                      data
+	 * @return json                     json
+	 * @throws Exception                exception
+	 */
+	public JsonNode queryResourceValue (
+			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
+			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode data)
+			throws Exception {
+		
+		if (data.get("kind").asText().contains("ConfigMap")) {
+			return ClientUtil.getClient(token).getResource(
+					data.get("kind").asText(), 
+					data.get("namespace").asText(), 
+					data.get("name").asText()).get("data");
+		} else {
+			
+			String fullKind = getFullKind(token, data.get("kind").asText());
+			ArrayNode arrayNode = ClientUtil.sqlMapper().queryAll(
+					getTable(token, fullKind), data.get("field").asText());
+			
+			ObjectNode json = new ObjectMapper().createObjectNode();
+			for (int i = 0; i < arrayNode.size(); i++) {
+				json.put(arrayNode.get(i).asText(), arrayNode.get(i).asText());
+			}
+			return json;
+		}
+	}
+	
+	
+	/*************************************************************************
+	 * 
+	 * 
+	 *      Handling myself
+	 * 
+	 * 
+	 **************************************************************************/
+	
+	
+	/*************************************************************************
+	 * 
+	 * 
+	 *       Common
+	 * 
+	 * 
+	 **************************************************************************/
+	/**
+	 * @param token                      token
+	 * @return json                      json
+	 * @throws Exception                 exception
 	 */
 	protected JsonNode getComponents(
 			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token
@@ -283,14 +316,6 @@ public class KubeService extends HttpBodyHandler {
 	}
 	
 	
-	/*********************************************************
-	 *    
-	 *    
-	 *    Deprecated
-	 *
-	 *
-	 *********************************************************/
-	
 	/**
 	 * @param token                    token
 	 * @param name                     name
@@ -298,6 +323,7 @@ public class KubeService extends HttpBodyHandler {
 	 * @exception                      exception 
 	 */
 	protected JsonNode getTemplate(String token, String name) throws Exception {
+		
 		String userKind = getUserInputKind(name);
 		
 		String realKind = getKind(userKind);
