@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -29,28 +30,23 @@ public class MessageMapper {
 	
 	public static String DEFAULT_PORT     = "5672";
 	
-	public static String DEFAULT_QUEUE    = "event";
+	protected final String exchange = "event";
 	
 	protected final String queue;
 	
 	protected Channel channel;
 	
 	
-	public MessageMapper() throws Exception {
-		this(DEFAULT_QUEUE, createChannel(), true);
+	public MessageMapper(String queue) throws Exception {
+		this(queue, createChannel());
 	}
 	
-	public MessageMapper(boolean deleted) throws Exception {
-		this(DEFAULT_QUEUE, createChannel(), deleted);
-	}
-	
-	public MessageMapper(String queue, Channel channel, boolean deleted) throws Exception {
+	public MessageMapper(String queue, Channel channel) throws Exception {
 		this.queue = queue;
 		this.channel = channel;
-		if (deleted) {
-			this.channel.queueDelete(queue);
-		}
-		this.channel.queueDeclare(queue, true, false, false, null);
+		this.channel.exchangeDeclare(exchange, BuiltinExchangeType.TOPIC);
+		this.channel.queueDeclare(queue, false, false, false, null);
+		this.channel.queueBind(queue, exchange, queue);
 	}
 
 	public static Channel createChannel() {
@@ -95,7 +91,7 @@ public class MessageMapper {
 
 	public void send(JsonNode json) {
 		try {
-			this.channel.basicPublish("", queue, null, json.toPrettyString().getBytes("UTF-8"));
+			this.channel.basicPublish(exchange, queue, null, json.toPrettyString().getBytes("UTF-8"));
 		} catch (IOException e) {
 			m_logger.severe("unable to send data: " + json.toPrettyString());
 			m_logger.severe(e.toString());

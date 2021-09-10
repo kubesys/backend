@@ -31,7 +31,7 @@ public class AMQPTest {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		MessageMapper msgMapper = new MessageMapper(false);
+		MessageMapper msgMapper = new MessageMapper("pod");
 		Consumer consumer = new DefaultConsumer(msgMapper.getChannel()) {
 
 			@Override
@@ -42,7 +42,7 @@ public class AMQPTest {
 			}
 			
 		};
-		msgMapper.getChannel().basicConsume("event", consumer);
+		msgMapper.getChannel().basicConsume("pod", consumer);
 	}
 	
 }

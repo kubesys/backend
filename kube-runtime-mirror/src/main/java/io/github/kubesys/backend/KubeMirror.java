@@ -43,7 +43,6 @@ public class KubeMirror {
 	protected SQLMapper sqlMapper;
 	
 	/**
-	 * msgMapper
 	 */
 	protected MessageMapper msgMapper;
 	
@@ -64,7 +63,6 @@ public class KubeMirror {
 	public KubeMirror(KubernetesClient kubeClient) throws Exception {
 		try {
 			this.sqlMapper = new SQLMapper(kubeClient);
-			this.msgMapper = new MessageMapper();
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			System.exit(1);
@@ -181,7 +179,7 @@ public class KubeMirror {
 
 		try {
 			m_logger.info("starting Watcher " + kind);
-			SourceToSink watcher = new SourceToSink(kind, table, this, new MessageMapper());
+			SourceToSink watcher = new SourceToSink(kind, table, this, new MessageMapper(kind.toLowerCase()));
 			watchers.put(table, sqlMapper.getKubeClient().watchResources(kind, watcher));
 			m_logger.info("Watcher " + kind + " is working");
 		} catch (Exception ex) {
