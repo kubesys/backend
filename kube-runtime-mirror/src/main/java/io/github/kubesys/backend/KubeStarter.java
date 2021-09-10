@@ -32,8 +32,8 @@ public class KubeStarter {
 		
 		
 		KubeMirror kubeMirror = new KubeMirror(kubeClient);
-		kubeMirror.start(new String[] {"doslab.io.Frontend", "Pod"});
-		
+//		kubeMirror.start(new String[] {"doslab.io.Frontend", "Pod"});
+		kubeMirror.start();
 	}
 	
 }
