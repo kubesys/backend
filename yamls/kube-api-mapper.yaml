@@ -1,0 +1,60 @@
+--- 
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata: 
+  name: "kube-api-mapper"
+  namespace: "kube-system"
+  labels: 
+    name: "kube-api-mapper"
+spec: 
+  replicas: 1
+  selector: 
+    matchLabels:
+      name: "kube-api-mapper"
+  template: 
+    metadata: 
+      labels: 
+        name: "kube-api-mapper"
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      containers:
+      - name: "kube-api-mapper"
+        image: "registry.cn-beijing.aliyuncs.com/doslab/kube-api-mapper:v#version#-#arch#"
+        imagePullPolicy: "IfNotPresent"
+        command: 
+        - "java"
+        - "-jar"
+        - "kube-api-mapper.jar"
+        env:
+        - name: jdbcType
+          value: "#type#"
+        - name: jdbcHost
+          value: "#host#"
+        - name: jdbcPort
+          value: "#port#"
+        - name: kubeUrl
+          value: "#url#"
+        - name: kubeToken
+          value: "#token#"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-api-mapper
+  namespace: kube-system
+  labels: 
+    name: kube-api-mapper
+spec:
+  type: NodePort
+  ports:
+  - port: 30308
+    protocol: TCP
+    targetPort: 30308
+    name: kube-api-mapper-port
+    nodePort: 30308
+  selector:
+    name: kube-api-mapper
