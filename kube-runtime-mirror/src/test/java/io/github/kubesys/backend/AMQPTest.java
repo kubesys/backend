@@ -7,6 +7,9 @@ package io.github.kubesys.backend;
 import java.io.IOException;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
+
+import io.github.kubesys.backend.mq.MessageMapper;
+
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;

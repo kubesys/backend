@@ -15,6 +15,8 @@ import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.github.kubesys.backend.mq.IncludedAMQPWatcher;
+import io.github.kubesys.backend.mq.MessageMapper;
 import io.github.kubesys.kubeclient.KubernetesCRDWacther;
 import io.github.kubesys.kubeclient.KubernetesClient;
 import io.github.kubesys.kubeclient.KubernetesConstants;
@@ -37,6 +39,11 @@ public class KubeMirror {
 	 */
 	public Set<String> sources = new HashSet<>();
 
+	/**
+	 * kubeClient
+	 */
+	protected KubernetesClient kubeClient;
+	
 	/**
 	 * sql client
 	 */
@@ -62,7 +69,8 @@ public class KubeMirror {
 	
 	public KubeMirror(KubernetesClient kubeClient) throws Exception {
 		try {
-			this.sqlMapper = new SQLMapper(kubeClient);
+			this.kubeClient = kubeClient;
+			this.sqlMapper = new SQLMapper();
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			System.exit(1);
@@ -77,7 +85,7 @@ public class KubeMirror {
 	public KubeMirror fromSources() throws Exception {
 		List<String> fullKinds = new ArrayList<>();
 		try {
-			KubernetesRuleBase ruleBase = sqlMapper.getKubeClient().getAnalyzer()
+			KubernetesRuleBase ruleBase = this.kubeClient.getAnalyzer()
 					.getConvertor().getRuleBase();
 			for (List<String> fullkinds : ruleBase.getFullKinds().values()) {
 				for (String fullKind : fullkinds) {
@@ -113,7 +121,7 @@ public class KubeMirror {
 		for (String fullkind : fullkinds) {
 			this.sources.add(fullkind);
 			
-			String table = sqlMapper.getKubeClient().getAnalyzer()
+			String table = this.kubeClient.getAnalyzer()
 					.getConvertor().getRuleBase().getName(fullkind);
 
 			if (table.contains("/") || table.contains("-")) {
@@ -174,13 +182,13 @@ public class KubeMirror {
 	 */
 	protected void doWatcher(String kind) throws Exception {
 		
-		KubernetesRuleBase ruleBase = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase();
+		KubernetesRuleBase ruleBase = this.kubeClient.getAnalyzer().getConvertor().getRuleBase();
 		String table = ruleBase.getName(kind);
 
 		try {
 			m_logger.info("starting Watcher " + kind);
 			SourceToSink watcher = new SourceToSink(kind, table, this, new MessageMapper(kind.toLowerCase()));
-			watchers.put(table, sqlMapper.getKubeClient().watchResources(kind, watcher));
+			watchers.put(table, this.kubeClient.watchResources(kind, watcher));
 			m_logger.info("Watcher " + kind + " is working");
 		} catch (Exception ex) {
 			m_logger.info("fail to start Watcher " + kind);
@@ -204,7 +212,7 @@ public class KubeMirror {
 	 */
 	@SuppressWarnings("deprecation")
 	protected void stopWatcher(String kind) throws Exception {
-		String table = sqlMapper.getKubeClient().getAnalyzer().getConvertor().getRuleBase().getName(kind);
+		String table = this.kubeClient.getAnalyzer().getConvertor().getRuleBase().getName(kind);
 		if (sqlMapper.checkTable(table)) {
 			sqlMapper.dropTable(table);
 		} 
@@ -235,12 +243,12 @@ public class KubeMirror {
 	}
 
 	public boolean beenWatched(String kind) {
-		return watchers.containsKey(sqlMapper.getKubeClient()
+		return watchers.containsKey(this.kubeClient
 				.getAnalyzer().getConvertor().getRuleBase().getName(kind));
 	}
 
 	public KubernetesClient getKubeClient() {
-		return sqlMapper.getKubeClient();
+		return this.kubeClient;
 	}
 
 	public SQLMapper getSqlClient() {

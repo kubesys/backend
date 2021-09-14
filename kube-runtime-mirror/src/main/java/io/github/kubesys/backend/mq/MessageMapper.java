@@ -2,7 +2,7 @@
 
  * Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
  */
-package io.github.kubesys.backend;
+package io.github.kubesys.backend.mq;
 
 import java.io.IOException;
 import java.util.logging.Logger;

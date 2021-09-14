@@ -2,7 +2,7 @@
 
  * Copyright (2021, ) Institute of Software, Chinese Academy of Sciences
  */
-package io.github.kubesys.backend;
+package io.github.kubesys.backend.mq;
 
 import java.util.logging.Logger;
 
@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.github.kubesys.backend.SQLMapper;
 import io.github.kubesys.kubeclient.KubernetesClient;
 import io.github.kubesys.kubeclient.KubernetesWatcher;
 

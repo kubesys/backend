@@ -33,8 +33,6 @@ import io.github.kubesys.datafrk.core.operators.RemoveData;
 import io.github.kubesys.datafrk.core.operators.RemoveDataBuilder;
 import io.github.kubesys.datafrk.core.operators.UpdateData;
 import io.github.kubesys.datafrk.core.operators.UpdateDataBuilder;
-import io.github.kubesys.kubeclient.KubernetesClient;
-
 /**
  * @author wuheng@iscas.ac.cn
  * @since 2.0.1
@@ -101,8 +99,6 @@ public class SQLMapper {
 	
 	protected final DataContext context;
 	
-	protected final KubernetesClient kubeClient;
-	
 	/****************************************************************************
 	 * 
 	 * 
@@ -111,14 +107,13 @@ public class SQLMapper {
 	 * 
 	 *****************************************************************************/
 	
-	public SQLMapper(KubernetesClient kubeClient) throws Exception {
-		this(kubeClient, createDataContext());
+	public SQLMapper() throws Exception {
+		this(createDataContext());
 	}
 	
-	public SQLMapper(KubernetesClient kubeClient, DataContext context) {
+	public SQLMapper(DataContext context) {
 		super();
 		this.context = context;
-		this.kubeClient = kubeClient;
 	}
 
 	public void close() throws Exception {
@@ -190,10 +185,6 @@ public class SQLMapper {
 		}
 	}
 	
-	public KubernetesClient getKubeClient() {
-		return kubeClient;
-	}
-
 	/****************************************************************************
 	 * 
 	 * 

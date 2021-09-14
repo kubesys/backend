@@ -75,7 +75,7 @@ public class ClientUtil {
 		try {
 			if (sqlMapper == null) {
 				initKubeClient();
-				sqlMapper =  new SQLMapper(tokenMaps.get("default"));
+				sqlMapper =  new SQLMapper();
 			}
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
