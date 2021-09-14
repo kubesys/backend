@@ -6,6 +6,7 @@ package io.github.kubesys.backend;
 
 import java.lang.reflect.Constructor;
 import java.sql.ResultSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.kubesys.datafrk.core.DataContext;
+import io.github.kubesys.datafrk.core.Table;
 import io.github.kubesys.datafrk.core.items.ItemTypeBuilder;
 import io.github.kubesys.datafrk.core.operators.CheckDatabase;
 import io.github.kubesys.datafrk.core.operators.CheckTable;
@@ -354,6 +356,18 @@ public class SQLMapper {
 		return context.currentDatabase().checkTable(ct);
 	}
 	
+	
+	/****************************************************************************
+	 * 
+	 * 
+	 *                         Insert, Update, Delete objects
+	 * 
+	 * 
+	 *****************************************************************************/
+	
+	public Collection<Table<?>> listTables() {
+		return context.currentDatabase().tables();
+	}
 	/****************************************************************************
 	 * 
 	 * 
@@ -381,6 +395,16 @@ public class SQLMapper {
 				item = item.get(key);
 			}
 			list.add(item.asText());
+		}
+		return list;
+	}
+	
+	public ArrayNode queryData(String table, Map<String, String> lables) throws Exception {
+		ArrayNode list = new ObjectMapper().createArrayNode();
+		ArrayNode results = getItems(table, 10000, 0, lables);
+		for (int i = 0; i < results.size(); i++) {
+			JsonNode item = results.get(i);
+			list.add(item);
 		}
 		return list;
 	}
