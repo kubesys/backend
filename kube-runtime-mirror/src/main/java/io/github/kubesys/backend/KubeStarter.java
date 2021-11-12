@@ -35,6 +35,8 @@ public class KubeStarter {
 //		kubeMirror.start(new String[] {"Pod"});
 		kubeMirror.start();
 		
+		KubePinger kubePinger = new KubePinger(kubeClient);
+		kubePinger.start();
 		
 	}
 	
