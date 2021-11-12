@@ -15,11 +15,9 @@ import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.github.kubesys.backend.mq.IncludedAMQPWatcher;
-import io.github.kubesys.backend.mq.MessageMapper;
-import io.github.kubesys.kubeclient.KubernetesCRDWacther;
 import io.github.kubesys.kubeclient.KubernetesClient;
 import io.github.kubesys.kubeclient.KubernetesConstants;
+import io.github.kubesys.kubeclient.KubernetesWatcher;
 import io.github.kubesys.kubeclient.core.KubernetesRuleBase;
 
 
@@ -48,10 +46,6 @@ public class KubeMirror {
 	 * sql client
 	 */
 	protected SQLMapper sqlMapper;
-	
-	/**
-	 */
-	protected MessageMapper msgMapper;
 	
 	
 	/**
@@ -128,7 +122,7 @@ public class KubeMirror {
 				continue;
 			}
 			
-			deleteTableIfExit(table);
+			deleteDataIfTableExit(table);
 			sqlMapper.createTable(table);
 			
 			KubeUtils.createMeatadata(getKubeClient(), fullkind);
@@ -187,7 +181,7 @@ public class KubeMirror {
 
 		try {
 			m_logger.info("starting Watcher " + kind);
-			SourceToSink watcher = new SourceToSink(kind, table, this, new MessageMapper(kind.toLowerCase()));
+			SourceToSink watcher = new SourceToSink(kind, table, this);
 			watchers.put(table, this.kubeClient.watchResources(kind, watcher));
 			m_logger.info("Watcher " + kind + " is working");
 		} catch (Exception ex) {
@@ -196,13 +190,14 @@ public class KubeMirror {
 		}
 	}
 
+	
 	/**
 	 * @param table                   table
 	 * @throws Exception              exception
 	 */
-	protected void deleteTableIfExit(String table) throws Exception {
+	protected void deleteDataIfTableExit(String table) throws Exception {
 		if (sqlMapper.checkTable(table)) {
-			sqlMapper.dropTable(table);
+			sqlMapper.deleteData(table);
 		}
 	}
 	
@@ -260,7 +255,7 @@ public class KubeMirror {
 	 * @author wuheng
 	 * @since 2019.4.20
 	 */
-	public static class SourceToSink extends IncludedAMQPWatcher {
+	public static class SourceToSink extends KubernetesWatcher {
 
 		public static final Logger m_logger = Logger.getLogger(SourceToSink.class.getName());
 
@@ -279,22 +274,15 @@ public class KubeMirror {
 		 */
 		protected final KubeMirror kubeMirror;
 		
-		/**
-		 * crdWatcher
-		 */
-		protected final KubernetesCRDWacther crdWatcher;
-		
-		public SourceToSink(String kind, String table, KubeMirror kubeMirror, MessageMapper msgMapper) throws Exception {
-			super(kubeMirror.getKubeClient(), msgMapper);
+		public SourceToSink(String kind, String table, KubeMirror kubeMirror) throws Exception {
+			super(kubeMirror.getKubeClient());
 			this.kind = kind;
 			this.table = table;
 			this.kubeMirror = kubeMirror;
-			this.crdWatcher = new KubernetesCRDWacther(kubeMirror.getKubeClient());
 		}
 
 		@Override
 		public void doAdded(JsonNode json) {
-			super.doAdded(json);
 			try {
 				kubeMirror.getSqlClient().insertObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
@@ -306,7 +294,6 @@ public class KubeMirror {
 				m_logger.info("insert object  " + json + " successfully.");
 				
 				if ("CustomResourceDefinition".equals(json.get("kind").asText())) {
-					this.crdWatcher.doAdded(json);
 					JsonNode spec = json.get(KubernetesConstants.KUBE_SPEC);
 					JsonNode names = spec.get(KubernetesConstants.KUBE_SPEC_NAMES);
 					String kind = names.get(KubernetesConstants.KUBE_SPEC_NAMES_KIND).asText();
@@ -323,7 +310,6 @@ public class KubeMirror {
 
 		@Override
 		public void doModified(JsonNode json) {
-			super.doModified(json);
 			try {
 				kubeMirror.getSqlClient().updateObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
@@ -339,7 +325,6 @@ public class KubeMirror {
 
 		@Override
 		public void doDeleted(JsonNode json) {
-			super.doDeleted(json);
 			try {
 				kubeMirror.getSqlClient().deleteObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
@@ -348,7 +333,6 @@ public class KubeMirror {
 				m_logger.info("delete object  " + json + " successfully.");
 				
 				if ("CustomResourceDefinition".equals(json.get("kind").asText())) {
-					this.crdWatcher.doDeleted(json);
 					JsonNode spec = json.get(KubernetesConstants.KUBE_SPEC);
 					JsonNode names = spec.get(KubernetesConstants.KUBE_SPEC_NAMES);
 					String kind = names.get(KubernetesConstants.KUBE_SPEC_NAMES_KIND).asText();
@@ -367,7 +351,7 @@ public class KubeMirror {
 		public void doClose() {
 			try {
 				client.watchResources(kind, new SourceToSink(
-						kind, table, kubeMirror, msgClient));
+						kind, table, kubeMirror));
 			} catch (Exception e) {
 				System.exit(1);
 			}
