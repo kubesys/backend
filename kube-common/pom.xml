@@ -12,7 +12,7 @@
 	<url>http://maven.apache.org</url>
 
 	<properties>
-		<kubeclient.version>2.0.5</kubeclient.version>
+		<kubeclient.version>2.1.1</kubeclient.version>
 		<datafrk.version>2.0.3</datafrk.version>
 	</properties>
 
@@ -121,10 +121,10 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<properties>
-				<sonar.jdbc.url>jdbc:postgresql://39.106.40.190:30306/sonar</sonar.jdbc.url>
+				<sonar.jdbc.url>jdbc:postgresql://39.100.71.73:30306/sonar</sonar.jdbc.url>
 				<sonar.jdbc.username>postgres</sonar.jdbc.username>
 				<sonar.jdbc.password>onceas</sonar.jdbc.password>
-				<sonar.host.url>http://39.106.40.190:31041</sonar.host.url>
+				<sonar.host.url>http://39.100.71.73:31041</sonar.host.url>
 				<sonar.login>admin</sonar.login>
 				<sonar.password>admin123</sonar.password>
 			</properties>

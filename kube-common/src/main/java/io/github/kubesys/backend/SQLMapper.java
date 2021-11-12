@@ -54,7 +54,11 @@ public class SQLMapper {
 	
 	public static final String DEFAULT_MYSQL_TYPE                  = "mysql";
 	
+	public static final String DEFAULT_REGION                      = "local";
+	
 	public static final String DATABASE_TYPE                       = System.getenv("jdbcType") != null ? System.getenv("jdbcType") : DEFAULT_POSTGRES_TYPE;
+	
+	public static final String DATASET_REGION                      = System.getenv("region") != null ?  System.getenv("region") : DEFAULT_REGION;
 	
 	static {
 		DEF_POSTGRES_VALUES.put("defaultDriver", "org.postgresql.Driver");
@@ -256,6 +260,7 @@ public class SQLMapper {
 		builder = (InsertDataBuilder<?, InsertData>) builder.beginValue(name);
 		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(namespace);
 		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(group);
+		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(DATASET_REGION);
 		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(created);
 		builder = (InsertDataBuilder<?, InsertData>) builder.andValue(updated);
 		builder = (InsertDataBuilder<?, InsertData>) builder.endValue(json, true);
@@ -289,6 +294,8 @@ public class SQLMapper {
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(namespace);
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.and("apigroup");
 		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(group);
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.and("region");
+		builder = (UpdateDataBuilder<?, UpdateData>) builder.eq(DATASET_REGION);
 		return context.currentDatabase().get(table).update(builder.build());
 	}
 	
@@ -311,6 +318,22 @@ public class SQLMapper {
 		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(namespace);
 		builder = (RemoveDataBuilder<?, RemoveData>) builder.and("apigroup");
 		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(group);
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.and("region");
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(DATASET_REGION);
+		return context.currentDatabase().get(table).delete(builder.build());
+	}
+	
+	/**
+	 * @param table                                  table
+	 * @return                                       true or false
+	 * @throws Exception                             exception
+	 */
+	@SuppressWarnings("unchecked")
+	public boolean deleteData(String table) throws Exception {
+		RemoveDataBuilder<?, RemoveData> builder = (RemoveDataBuilder<?, RemoveData>) Class.forName(DEF_VALUES.get(DATABASE_TYPE).get("deleteObject")).newInstance();
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.delete(table);
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.where("region");
+		builder = (RemoveDataBuilder<?, RemoveData>) builder.eq(DATASET_REGION);
 		return context.currentDatabase().get(table).delete(builder.build());
 	}
 
@@ -337,6 +360,7 @@ public class SQLMapper {
 		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("name",      typeBuilder.varchar(512), true);
 		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("namespace", typeBuilder.varchar(128), true);
 		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("apigroup",  typeBuilder.varchar(128), true);
+		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("region",  typeBuilder.varchar(128), true);
 		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("created",   typeBuilder.datatime());
 		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("updated",   typeBuilder.datatime());
 		tableBuilder = (CreateTableBuilder<?, CreateTable>)  tableBuilder.addItem("data",      typeBuilder.json());							
