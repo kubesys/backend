@@ -122,10 +122,10 @@ public class KubeMirror {
 				continue;
 			}
 			
-			deleteDataIfTableExit(table);
-			sqlMapper.createTable(table);
+			if (!sqlMapper.createTable(table)) {
+				KubeUtils.createMeatadata(getKubeClient(), fullkind);
+			}
 			
-			KubeUtils.createMeatadata(getKubeClient(), fullkind);
 		}
 		return this;
 	}
