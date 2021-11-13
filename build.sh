@@ -9,7 +9,6 @@
 
 MAVEN="maven:3.6.3-openjdk-11"
 
-
 ###############################################
 ##
 ##  Source to Jar
@@ -28,19 +27,6 @@ docker run -it --net host --rm -v /root/.m2:/root/.m2 -v "$(pwd)/kube-api-mapper
 ##
 ###############################################
 
-arch=""
-
-if [[ $(arch) == "x86_64" ]]
-then
-  arch="amd64"
-elif [[ $(arch) == "aarch64" ]]
-then
-  arch="arm64"
-else
-  echo "only support x86_64(amd64) and aarch64(arm64)"
-  exit 1
-fi
-
 mirror="kube-runtime-mirror"
 mapper="kube-api-mapper"
 version=$(cat $mirror/pom.xml | grep version | head -1 | awk -F">" '{print$2}' | awk -F"<" '{print$1}')
@@ -51,14 +37,10 @@ withjar="jar-with-dependencies"
 
 repo="registry.cn-beijing.aliyuncs.com/doslab"
 
-docker build docker/ -t $repo/$mirror:v$version-$arch -f docker/Dockerfile-$mirror
-docker build docker/ -t $repo/$mapper:v$version-$arch -f docker/Dockerfile-$mapper
+docker buildx create --name mybuilder --driver docker-container
+docker buildx use mybuilder
+docker run --privileged --rm tonistiigi/binfmt --install all
 
-###############################################
-##
-##  local image to remote
-##
-###############################################
+docker buildx build docker/ --platform linux/arm64,linux/amd64 -t $repo/$mirror:v$version --push -f docker/Dockerfile-$mirror
+docker buildx build docker/ --platform linux/arm64,linux/amd64 -t $repo/$mapper:v$version --push -f docker/Dockerfile-$mapper
 
-docker push  $repo/$mirror:v$version-$arch
-docker push  $repo/$mapper:v$version-$arch
