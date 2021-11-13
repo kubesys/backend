@@ -54,11 +54,10 @@ public class KubeUtil {
 	}
 
 	/**
-	 * @param namespace namespace
 	 * @param name      name
 	 * @return json
 	 */
-	public static ObjectNode createServiceAccount(String namespace, String name) {
+	public static ObjectNode createServiceAccount(String name) {
 
 		ObjectNode serviceaccount = new ObjectMapper().createObjectNode();
 		serviceaccount.put("apiVersion", "v1");
@@ -66,10 +65,17 @@ public class KubeUtil {
 		ObjectNode serviceaccountMeta = new ObjectMapper().createObjectNode();
 		{
 			serviceaccountMeta.put("name", name);
-			serviceaccountMeta.put("namespace", namespace);
+			serviceaccountMeta.put("namespace", "default");
 		}
 		serviceaccount.set("metadata", serviceaccountMeta);
 
+		ArrayNode secrets = new ObjectMapper().createArrayNode();
+		ObjectNode secret = new ObjectMapper().createObjectNode();
+		secret.put("name", name);
+		secrets.add(secret);
+		
+		serviceaccount.set("secrets", secrets);
+		
 		return serviceaccount;
 	}
 
@@ -94,11 +100,10 @@ public class KubeUtil {
 	}
 
 	/**
-	 * @param namespace namespace
 	 * @param name      name
 	 * @return json
 	 */
-	public static ObjectNode createClusterRoleBinding(String namespace, String name) {
+	public static ObjectNode createClusterRoleBinding(String name) {
 		ObjectNode clusterrolebinding = new ObjectMapper().createObjectNode();
 		clusterrolebinding.put("apiVersion", "rbac.authorization.k8s.io/v1");
 		clusterrolebinding.put("kind", "ClusterRoleBinding");
@@ -119,7 +124,7 @@ public class KubeUtil {
 		{
 			clusterrolebindingSubject.put("kind", "ServiceAccount");
 			clusterrolebindingSubject.put("name", name);
-			clusterrolebindingSubject.put("namespace", namespace);
+			clusterrolebindingSubject.put("namespace", "default");
 		}
 		clusterrolebindingSubjects.add(clusterrolebindingSubject);
 		clusterrolebinding.set("subjects", clusterrolebindingSubjects);

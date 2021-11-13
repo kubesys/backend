@@ -23,7 +23,7 @@ import com.github.kubesys.httpfrk.HttpServer;
  * 
  */
 
-@ComponentScan(basePackages = { "io.github.kubesys.backend.services" })
+@ComponentScan(basePackages = { "io.github.kubesys.backend" })
 public class ApplicationServer extends HttpServer  {
 
 	/**

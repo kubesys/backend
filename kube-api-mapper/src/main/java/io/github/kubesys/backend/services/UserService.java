@@ -1,7 +1,7 @@
 /**
  * Copyrigt (2019, ) Institute of Software, Chinese Academy of Sciences
  */
-package io.github.kubesys.backend.services.commons;
+package io.github.kubesys.backend.services;
 
 import java.util.Base64;
 
@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.kubesys.httpfrk.core.HttpBodyHandler;
 import com.github.kubesys.tools.annotations.ServiceDefinition;
 
+import io.github.kubesys.backend.rbac.Role;
 import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
@@ -21,9 +22,12 @@ import io.swagger.annotations.ApiParam;
 
 
 /**
- * @author lichengzhi99@otcaix.iscas.ac.cn
  * @author wuheng@otcaix.iscas.ac.cn
  *
+ * see https://kubernetes.io/zh/docs/concepts/configuration/secret/
+ *     https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+ *     https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+ * 
  */
 @ServiceDefinition
 @Api(value = "用户生命周期管理")
@@ -106,79 +110,37 @@ public class UserService extends HttpBodyHandler {
 	}
 	
 	/**
-	 * @param username				 username
-	 * @param namespace				 namespace
-	 * @return                       json(role and avatar)
-	 * @throws Exception			 exception
-	 */
-	@ApiOperation(value = "获取用户信息")
-	public JsonNode getUserInfo(
-			@ApiParam(value = "命名空间", required = true, example = "default")
-			String namespace, 
-			@ApiParam(value = "用户名", required = true, example = "admin")
-			String username) throws Exception {
-			try {
-				JsonNode spec = client.getResource("User", namespace, username).get("spec");
-				ObjectNode res = new ObjectMapper().createObjectNode();
-				res.put("role", spec.get("role").get("name").asText());
-				return res;
-			}catch (Exception e) {
-				throw new Exception("can not get user resource or do not have specific field");
-			}
-	}
-	
-	/**
-	 * @param json                  json 
+	 * @param role                  role 
 	 * @return                      json (kubectl get userroles)
 	 * @throws Exception            exception
 	 */
 	@ApiOperation(value = "创建用户角色，使用Kubernetes的规范")
 	public JsonNode createUserRole(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			JsonNode json) throws Exception {
-
-		String kind = KubeUtil.getKind(json);
-
-		if (!isExpected(kind, "UserRole")) {
-			throw new Exception("it is not a userrole.");
-		}
-
-		String namespace = KubeUtil.getNamespace(json);
-		String name = KubeUtil.getName(json);
-
-		client.createResource(KubeUtil
-				.createServiceAccount(namespace, name));
-		client.createResource(KubeUtil
-				.createClusterRole(name, json.get("rules")));
-		client.createResource(KubeUtil
-				.createClusterRoleBinding(namespace, name));
-		
-		return client.createResource(json);
+			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
+			Role role) throws Exception {
+		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(role));
+		client.createResource(KubeUtil.createClusterRole(role.getName(), userRole.get("rules")));
+		client.createResource(KubeUtil.createServiceAccount(role.getName()));
+		client.createResource(KubeUtil.createClusterRoleBinding(role.getName()));
+		return userRole;
 	}
 
 
 
 	/**
-	 * @param json                  json 
+	 * @param role                  json 
 	 * @return                      json (kubectl get userroles)
 	 * @throws Exception            exception
 	 */
 	@ApiOperation(value = "更新用户角色信息，使用Kubernetes的规范")
 	public JsonNode updateUserRole(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			JsonNode json) throws Exception {
-		String kind = KubeUtil.getKind(json);
-		
-		if (!isExpected(kind, "UserRole")) {
-			throw new Exception("it is not a userrole.");
-		}
-		
-		String name = KubeUtil.getName(json);
-		
-		client.updateResource(KubeUtil
-				.createClusterRole(name, json.get("rules")));
-		
-		return client.updateResource(json);
+			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
+			Role role) throws Exception {
+		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(role));
+		ObjectNode clusterRole = (ObjectNode) client.getResource("ClusterRole", "default", role.getName());
+		clusterRole.remove("rules");
+		clusterRole.set("rules", userRole.get("rules"));
+		return client.updateResource(clusterRole);
 	}
 	
 	/**
@@ -188,22 +150,13 @@ public class UserService extends HttpBodyHandler {
 	 */
 	@ApiOperation(value = "删除用户角色，使用Kubernetes的规范")
 	public JsonNode deleteUserRole(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			JsonNode json) throws Exception {
-		String kind = KubeUtil.getKind(json);
-		
-		if (!isExpected(kind, "UserRole")) {
-			throw new Exception("it is not a userrole.");
-		}
-		
-		String namespace = json.get("metadata").get("namespace").asText();
-		String name = json.get("metadata").get("name").asText();
-		
-		client.deleteResource("ServiceAccount", namespace, name);
-		client.deleteResource("ClusterRole", name);
-		client.deleteResource("ClusterRoleBinding", name);
-		
-		return client.deleteResource(json);
+			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
+			Role role) throws Exception {
+		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(role));
+		client.deleteResource("ServiceAccount", "default", role.getName());
+		client.deleteResource("ClusterRole", "default", role.getName());
+		client.deleteResource("ClusterRoleBinding", "default", role.getName());
+		return userRole;
 	}
 
 	
@@ -317,5 +270,39 @@ public class UserService extends HttpBodyHandler {
 		newSpec.set("info", spec.get("info"));
 		ClientUtil.createClientIfNotExist(user + "-" + token.substring(0, 8));
 		return newSpec;
+	}
+	
+	public static class User {
+		
+		protected String name;
+		
+		protected String password;
+		
+		protected String role;
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public String getPassword() {
+			return password;
+		}
+
+		public void setPassword(String password) {
+			this.password = password;
+		}
+
+		public String getRole() {
+			return role;
+		}
+
+		public void setRole(String role) {
+			this.role = role;
+		}
+		
 	}
 }

@@ -1,7 +1,7 @@
 /**
  * Copyright (2019, ) Institute of Software, Chinese Academy of Sciences
  */
-package io.github.kubesys.backend.services;
+package io.github.kubesys.backend.controllers;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -34,16 +34,6 @@ import io.github.kubesys.backend.utils.KubeUtil;
 @ComponentScan
 public class ApiMapperController extends HttpController  {
 
-//	public static Properties props = new Properties();
-//	
-//	static {
-//		try {
-//			props.load(new FileInputStream(ResourceUtils.getFile("logInfo")));
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-	
 	@Override
 	protected String doResponse(String servletPath, JsonNode body) throws Exception {
 		m_logger.info("Begin to deal with " + servletPath);
