@@ -6,6 +6,7 @@ package io.github.kubesys.backend;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.kubesys.kubeclient.KubernetesClient;
@@ -131,6 +132,19 @@ public class KubeUtils {
 		spec.put("version", ruleBase.getVersion(fullkind));
 		spec.put("api", ruleBase.getApiPrefix(fullkind));
 		spec.put("namespaced", ruleBase.isNamespaced(fullkind) ? "Namespace" : "Cluster");
+		
+		// "create", "delete", "deletecollection", "get", "list", "patch", "update", "watch" 
+		ArrayNode verbs = new ObjectMapper().createArrayNode();
+		verbs.add("create");
+		verbs.add("delete");
+		verbs.add("deletecollection");
+		verbs.add("get");
+		verbs.add("list");
+		verbs.add("patch");
+		verbs.add("update");
+		verbs.add("watch");
+		
+		spec.set("verbs", verbs);
 		json.set("spec", spec);
 		
 		try {

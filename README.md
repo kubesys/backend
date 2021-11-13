@@ -61,11 +61,8 @@ jdbcPassword=onceas // optional, default is 'onceas'
 kubeToken=xxx     // see project kubernetes-client-java
 kubeUrl=https://39.100.71.73:6443     // see project kubernetes-client-java
 
-// just for runtime-mirror
-amqpHost=192.168.90.78
-amqpPassword=guest
-amqpPort=30304
-amqpUser=guest
+// region
+region=local
 ```
 
 ## Architecture
@@ -84,3 +81,4 @@ and deploy a RuntimMirror component for each Kubernetes cluster.
 - 2.0.x: support MQ
   - 2.0.1: merge codes from [kubernetes-mirror](https://github.com/syswu/kubernetes-mirror) and [kubernetes-api-mapper](https://github.com/syswu/kubernetes-api-mapper) 
   - 2.0.2: support AMQP and generate default frontend
+  - 2.0.4: using Secret replaces User

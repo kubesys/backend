@@ -31,6 +31,4 @@ public class KubePinger extends Thread {
 		}
 	}
 	
-	
-	
 }
