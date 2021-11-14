@@ -37,21 +37,21 @@ public class UserService extends HttpBodyHandler {
 	protected KubernetesClient client = ClientUtil.getClient("default");
 	
 	/**
-	 * @param user                  user 
+	 * @param json                  user 
 	 * @return                      json (kubectl get users)
 	 * @throws Exception            exception
 	 */
 	@ApiOperation(value = "创建用户，使用Kubernetes的规范")
 	public JsonNode createUser(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			User user) throws Exception {
+			User json) throws Exception {
 		
 		JsonNode roles = client.listResources("ServiceAccount", "default");
 		
 		boolean hasRole = false;
 		for (JsonNode role : roles.get("items")) {
 			String name = role.get("metadata").get("name").asText();
-			if (name.equals(user.getRole())) {
+			if (name.equals(json.getRole())) {
 				hasRole = true;
 				break;
 			}
@@ -61,9 +61,9 @@ public class UserService extends HttpBodyHandler {
 			throw new RuntimeException("please create role firstly.");
 		}
 		
-		user.setPassword(Base64.getEncoder().encodeToString(user.getPassword().getBytes()));
+		json.setPassword(Base64.getEncoder().encodeToString(json.getPassword().getBytes()));
 		return client.createResource(new ObjectMapper().readTree(
-				new ObjectMapper().writeValueAsBytes(user)));
+				new ObjectMapper().writeValueAsBytes(json)));
 	}
 
 	
@@ -75,14 +75,14 @@ public class UserService extends HttpBodyHandler {
 	@ApiOperation(value = "更新用户信息，使用Kubernetes的规范")
 	public JsonNode updateUser(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			User user) throws Exception {
+			User json) throws Exception {
 		
 		JsonNode roles = client.listResources("ServiceAccount", "default");
 		
 		boolean hasRole = false;
 		for (JsonNode role : roles.get("items")) {
 			String name = role.get("metadata").get("name").asText();
-			if (name.equals(user.getRole())) {
+			if (name.equals(json.getRole())) {
 				hasRole = true;
 				break;
 			}
@@ -92,9 +92,9 @@ public class UserService extends HttpBodyHandler {
 			throw new RuntimeException("please create role firstly.");
 		}
 		
-		user.setPassword(Base64.getEncoder().encodeToString(user.getPassword().getBytes()));
+		json.setPassword(Base64.getEncoder().encodeToString(json.getPassword().getBytes()));
 		return client.updateResource(new ObjectMapper().readTree(
-				new ObjectMapper().writeValueAsBytes(user)));
+				new ObjectMapper().writeValueAsBytes(json)));
 	}
 
 	
@@ -106,44 +106,45 @@ public class UserService extends HttpBodyHandler {
 	@ApiOperation(value = "删除用户，使用Kubernetes的规范")
 	public JsonNode deleteUser(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			User user) throws Exception {
+			User json) throws Exception {
 		return client.deleteResource(new ObjectMapper().readTree(
-				new ObjectMapper().writeValueAsBytes(user)));
+				new ObjectMapper().writeValueAsBytes(json)));
 	}
 	
 	/**
-	 * @param role                  role 
+	 * @param json                  role 
 	 * @return                      json (kubectl get userroles)
 	 * @throws Exception            exception
 	 */
 	@ApiOperation(value = "创建用户角色，使用Kubernetes的规范")
 	public JsonNode createUserRole(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
-			Role role) throws Exception {
-		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(role));
-		client.createResource(KubeUtil.createClusterRole(role.getName(), userRole.get("rules")));
-		client.createResource(KubeUtil.createServiceAccount(role.getName()));
-		client.createResource(KubeUtil.createClusterRoleBinding(role.getName()));
-		String secretName = ClientUtil.getSecretName(role.getName());
+			Role json) throws Exception {
+		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(json));
+		client.createResource(KubeUtil.createClusterRole(json.getName(), userRole.get("rules")));
+		client.createResource(KubeUtil.createServiceAccount(json.getName()));
+		client.createResource(KubeUtil.createClusterRoleBinding(json.getName()));
+		String secretName = ClientUtil.getSecretName(json.getName());
 		String token = client.getResource("Secret", "default", secretName).get("data").get("token").asText();
 		String fullToken = new String(Base64.getDecoder().decode(token));
-		ClientUtil.register(role.getName(), fullToken);
+		ClientUtil.register(json.getName(), fullToken);
+		userRole.put("token", fullToken);
 		return userRole;
 	}
 
 
 
 	/**
-	 * @param role                  json 
+	 * @param json                  json 
 	 * @return                      json (kubectl get userroles)
 	 * @throws Exception            exception
 	 */
 	@ApiOperation(value = "更新用户角色信息，使用Kubernetes的规范")
 	public JsonNode updateUserRole(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
-			Role role) throws Exception {
-		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(role));
-		ObjectNode clusterRole = (ObjectNode) client.getResource("ClusterRole", "default", role.getName());
+			Role json) throws Exception {
+		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(json));
+		ObjectNode clusterRole = (ObjectNode) client.getResource("ClusterRole", "default", json.getName());
 		clusterRole.remove("rules");
 		clusterRole.set("rules", userRole.get("rules"));
 		return client.updateResource(clusterRole);
@@ -157,11 +158,11 @@ public class UserService extends HttpBodyHandler {
 	@ApiOperation(value = "删除用户角色，使用Kubernetes的规范")
 	public JsonNode deleteUserRole(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
-			Role role) throws Exception {
-		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(role));
-		client.deleteResource("ServiceAccount", "default", role.getName());
-		client.deleteResource("ClusterRole", "default", role.getName());
-		client.deleteResource("ClusterRoleBinding", "default", role.getName());
+			Role json) throws Exception {
+		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(json));
+		client.deleteResource("ServiceAccount", "default", json.getName());
+		client.deleteResource("ClusterRole", "default", json.getName());
+		client.deleteResource("ClusterRoleBinding", "default", json.getName());
 		return userRole;
 	}
 
