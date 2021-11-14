@@ -1,0 +1,11 @@
+{
+	"apiVersion": "doslab.io/v1",
+	"kind": "User",
+	"metadata": {
+		"name": "admin"
+	},
+	"spec": {
+		"password": "YWRtaW4=",
+		"role": "admin"
+	}
+}
