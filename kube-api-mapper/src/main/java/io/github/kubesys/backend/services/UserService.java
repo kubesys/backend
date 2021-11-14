@@ -174,6 +174,27 @@ public class UserService extends HttpBodyHandler {
 		
     }
 	
+	/**
+	 * @param username				 username
+	 * @param namespace				 namespace
+	 * @return                       json(role and avatar)
+	 * @throws Exception			 exception
+	 */
+	@ApiOperation(value = "获取用户信息")
+	public JsonNode getUserInfo(
+			@ApiParam(value = "命名空间", required = true, example = "default")
+			String namespace, 
+			@ApiParam(value = "用户名", required = true, example = "admin")
+			String username) throws Exception {
+			try {
+				JsonNode spec = client.getResource("User", namespace, username).get("spec");
+				ObjectNode res = new ObjectMapper().createObjectNode();
+				res.put("role", spec.get("role").asText());
+				return res;
+			}catch (Exception e) {
+				throw new Exception("can not get user resource or do not have specific field");
+			}
+	}
 	
 
 	/**********************************************************************
