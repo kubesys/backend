@@ -62,39 +62,8 @@ public class UserService extends HttpBodyHandler {
 		}
 		
 		json.setPassword(Base64.getEncoder().encodeToString(json.getPassword().getBytes()));
-		return client.createResource(new ObjectMapper().readTree(
-				new ObjectMapper().writeValueAsBytes(json)));
-	}
-
-	
-	/**
-	 * @param json                  json 
-	 * @return                      json (kubectl get users)
-	 * @throws Exception            exception
-	 */
-	@ApiOperation(value = "更新用户信息，使用Kubernetes的规范")
-	public JsonNode updateUser(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			User json) throws Exception {
 		
-		JsonNode roles = client.listResources("ServiceAccount", "default");
-		
-		boolean hasRole = false;
-		for (JsonNode role : roles.get("items")) {
-			String name = role.get("metadata").get("name").asText();
-			if (name.equals(json.getRole())) {
-				hasRole = true;
-				break;
-			}
-		}
-		
-		if (!hasRole) {
-			throw new RuntimeException("please create role firstly.");
-		}
-		
-		json.setPassword(Base64.getEncoder().encodeToString(json.getPassword().getBytes()));
-		return client.updateResource(new ObjectMapper().readTree(
-				new ObjectMapper().writeValueAsBytes(json)));
+		return client.createResource(json.toJson());
 	}
 
 	
@@ -107,8 +76,7 @@ public class UserService extends HttpBodyHandler {
 	public JsonNode deleteUser(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
 			User json) throws Exception {
-		return client.deleteResource(new ObjectMapper().readTree(
-				new ObjectMapper().writeValueAsBytes(json)));
+		return client.deleteResource(json.toJson());
 	}
 	
 	/**
@@ -124,8 +92,14 @@ public class UserService extends HttpBodyHandler {
 		client.createResource(KubeUtil.createClusterRole(json.getName(), userRole.get("rules")));
 		client.createResource(KubeUtil.createServiceAccount(json.getName()));
 		client.createResource(KubeUtil.createClusterRoleBinding(json.getName()));
-		String secretName = ClientUtil.getSecretName(json.getName());
-		String token = client.getResource("Secret", "default", secretName).get("data").get("token").asText();
+		
+		JsonNode saJson = client.getResource("ServiceAccount", "default", json.getName());
+		while (!saJson.has("secrets")) {
+			saJson = client.getResource("ServiceAccount", "default", json.getName());
+		}
+		String secretName = saJson.get("secrets").get(0).get("name").asText();
+		String token = client.getResource("Secret", "default", secretName)
+								.get("data").get("token").asText();
 		String fullToken = new String(Base64.getDecoder().decode(token));
 		ClientUtil.register(json.getName(), fullToken);
 		userRole.put("token", fullToken);
@@ -163,6 +137,7 @@ public class UserService extends HttpBodyHandler {
 		client.deleteResource("ServiceAccount", "default", json.getName());
 		client.deleteResource("ClusterRole", "default", json.getName());
 		client.deleteResource("ClusterRoleBinding", "default", json.getName());
+		ClientUtil.unregister(json.getName());
 		return userRole;
 	}
 
@@ -188,7 +163,7 @@ public class UserService extends HttpBodyHandler {
 			String base64DecodePassword = getBase64DecodePassword(getPasswordFromUser(userSpec));
 			if (base64DecodePassword.equals(password)) {
 				ObjectNode node = new ObjectMapper().createObjectNode();
-				node.put("token", ClientUtil.getToken(geRoleFromUser(userSpec)));
+				node.put("token", ClientUtil.getBearerToken(geRoleFromUser(userSpec)));
 				return node;
 			} else {
 				throw new Exception("wrong password.");

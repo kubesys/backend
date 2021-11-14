@@ -69,13 +69,6 @@ public class KubeUtil {
 		}
 		serviceaccount.set("metadata", serviceaccountMeta);
 
-		ArrayNode secrets = new ObjectMapper().createArrayNode();
-		ObjectNode secret = new ObjectMapper().createObjectNode();
-		secret.put("name", name);
-		secrets.add(secret);
-		
-		serviceaccount.set("secrets", secrets);
-		
 		return serviceaccount;
 	}
 

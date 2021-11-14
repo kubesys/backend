@@ -3,15 +3,14 @@
  */
 package io.github.kubesys.backend.utils;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.github.kubesys.backend.SQLMapper;
-import io.github.kubesys.datafrk.core.Table;
-import io.github.kubesys.datafrk.core.operators.QueryData;
 import io.github.kubesys.kubeclient.KubernetesCRDWacther;
 import io.github.kubesys.kubeclient.KubernetesClient;
 
@@ -36,10 +35,11 @@ public class ClientUtil {
     public final static Map<String, String> roleToTokenMapper = new HashMap<>();
     
     static {
-		initKubeClient();
+		initDefKubeClient();
+		recoverAllRoles();
     }
 
-	public static void initKubeClient() {
+	public static void initDefKubeClient() {
 		if (tokenToclientMapper.size() == 0) {
 			try {
 				register("default", System.getenv("kubeToken"));
@@ -51,18 +51,38 @@ public class ClientUtil {
 				System.exit(1);
 			}
 		}
+		
+	}
+	
+	public static void recoverAllRoles() {
+		try {
+			for (JsonNode json : getClient("default").listResources("ServiceAccount", "default").get("items")) {
+				String name = json.get("metadata").get("name").asText();
+				if (!name.equals("default")) {
+					String secretName = json.get("secrets").get(0).get("name").asText();
+					JsonNode secretJson = getClient("default").getResource("Secret", "default", secretName);
+					register(name, new String(Base64.getDecoder().decode(
+							secretJson.get("data").get("token").asText())));
+				}
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 
 	public static void register(String role, String token) throws Exception {
-		KubernetesClient client = new KubernetesClient(
-				System.getenv("kubeUrl"), token);
+		KubernetesClient client = role.equals("default") ? 
+				new KubernetesClient(System.getenv("kubeUrl"), token)
+				: new KubernetesClient(System.getenv("kubeUrl"), token, 
+						tokenToclientMapper.get("default").getAnalyzer());
 		roleToTokenMapper.put(role, role.equals("default") ? "default" : token);
 		tokenToclientMapper.put(role.equals("default") ? "default" : token, client);
 	}
 	
-	public static String getToken(String role) {
+	public static String getBearerToken(String role) {
 		return roleToTokenMapper.get(role);
     }
+	
 	
 	public static KubernetesClient getClient(String token) {
     	KubernetesClient client = tokenToclientMapper.get(token);
@@ -72,7 +92,12 @@ public class ClientUtil {
 		return client;
     }
 	
-	public static void closeKubeClient(String token) {
+	public static void unregister(String role) {
+		if (role.equals("default")) {
+			throw new UnsupportedOperationException("Unsupport unregister default");
+		}
+		
+		String token = roleToTokenMapper.remove(role);
 		KubernetesClient rmClient = ClientUtil.tokenToclientMapper.remove(token);
 		try {
 			rmClient.getHttpCaller().getHttpClient().close();
@@ -109,32 +134,5 @@ public class ClientUtil {
 		return sqlMapper;
 	}
 	
-	public static String getSecretName(String name)  {
-		Table<?> table = null;
-		for (Table<?> t : sqlMapper.listTables()) {
-			if (t.name().equals("secrets")) {
-				table = t;
-				break;
-			}
-		}
-		QueryData query = new QueryData("select name from secrets where region = 'local' and name like '%" + name +"-token%'");
-		
-		ResultSet rs = null;
-		try {
-			rs = (ResultSet) table.query(query);
-			rs.next();
-			return rs.getString("name");
-		} catch (Exception ex) {
-			
-		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-				}
-			}
-		}
-		return null;
-	}
 	
 }

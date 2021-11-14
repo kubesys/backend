@@ -3,5 +3,3 @@ kind: ServiceAccount
 metadata:
   name: admin
   namespace: default
-secrets:
-- name: admin
