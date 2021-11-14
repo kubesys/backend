@@ -12,6 +12,7 @@ import com.github.kubesys.httpfrk.core.HttpBodyHandler;
 import com.github.kubesys.tools.annotations.ServiceDefinition;
 
 import io.github.kubesys.backend.rbac.Role;
+import io.github.kubesys.backend.rbac.User;
 import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
@@ -36,29 +37,33 @@ public class UserService extends HttpBodyHandler {
 	protected KubernetesClient client = ClientUtil.getClient("default");
 	
 	/**
-	 * @param json                  json 
+	 * @param user                  user 
 	 * @return                      json (kubectl get users)
 	 * @throws Exception            exception
 	 */
 	@ApiOperation(value = "创建用户，使用Kubernetes的规范")
 	public JsonNode createUser(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			JsonNode json) throws Exception {
+			User user) throws Exception {
 		
-		String kind = KubeUtil.getKind(json);
+		JsonNode roles = client.listResources("ServiceAccount", "default");
 		
-		if (!isExpected(kind, "User")) {
-			throw new Exception("it is not a user.");
+		boolean hasRole = false;
+		for (JsonNode role : roles.get("items")) {
+			String name = role.get("metadata").get("name").asText();
+			if (name.equals(user.getRole())) {
+				hasRole = true;
+				break;
+			}
 		}
 		
-		JsonNode spec = json.get("spec");
-		((ObjectNode) json).remove("spec");
-
+		if (!hasRole) {
+			throw new RuntimeException("please create role firstly.");
+		}
 		
-		((ObjectNode) json).set("spec", completeUser(json.get(
-					"metadata").get("name").asText(), spec));
-		
-		return client.createResource(json);
+		user.setPassword(Base64.getEncoder().encodeToString(user.getPassword().getBytes()));
+		return client.createResource(new ObjectMapper().readTree(
+				new ObjectMapper().writeValueAsBytes(user)));
 	}
 
 	
@@ -70,21 +75,26 @@ public class UserService extends HttpBodyHandler {
 	@ApiOperation(value = "更新用户信息，使用Kubernetes的规范")
 	public JsonNode updateUser(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			JsonNode json) throws Exception {
+			User user) throws Exception {
 		
-		String kind = KubeUtil.getKind(json);
+		JsonNode roles = client.listResources("ServiceAccount", "default");
 		
-		if (!isExpected(kind, "User")) {
-			throw new Exception("it is not a user.");
+		boolean hasRole = false;
+		for (JsonNode role : roles.get("items")) {
+			String name = role.get("metadata").get("name").asText();
+			if (name.equals(user.getRole())) {
+				hasRole = true;
+				break;
+			}
 		}
-
-		JsonNode spec = json.get("spec");
-		((ObjectNode) json).remove("spec");
-
-		((ObjectNode) json).set("spec", completeUser(json.get(
-					"metadata").get("name").asText(), spec));
 		
-		return client.updateResource(json);
+		if (!hasRole) {
+			throw new RuntimeException("please create role firstly.");
+		}
+		
+		user.setPassword(Base64.getEncoder().encodeToString(user.getPassword().getBytes()));
+		return client.updateResource(new ObjectMapper().readTree(
+				new ObjectMapper().writeValueAsBytes(user)));
 	}
 
 	
@@ -96,17 +106,9 @@ public class UserService extends HttpBodyHandler {
 	@ApiOperation(value = "删除用户，使用Kubernetes的规范")
 	public JsonNode deleteUser(
 			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
-			JsonNode json) throws Exception {
-		
-		String kind = KubeUtil.getKind(json);
-		
-		if (!isExpected(kind, "User")) {
-			throw new Exception("it is not a user.");
-		}
-		
-		ClientUtil.deleteClientIfExist(json.get("metadata").get("name").asText() + "-"
-								+ json.get("spec").get("token").asText().substring(0, 8));
-		return client.deleteResource(json);
+			User user) throws Exception {
+		return client.deleteResource(new ObjectMapper().readTree(
+				new ObjectMapper().writeValueAsBytes(user)));
 	}
 	
 	/**
@@ -122,6 +124,10 @@ public class UserService extends HttpBodyHandler {
 		client.createResource(KubeUtil.createClusterRole(role.getName(), userRole.get("rules")));
 		client.createResource(KubeUtil.createServiceAccount(role.getName()));
 		client.createResource(KubeUtil.createClusterRoleBinding(role.getName()));
+		String secretName = ClientUtil.getSecretName(role.getName());
+		String token = client.getResource("Secret", "default", secretName).get("data").get("token").asText();
+		String fullToken = new String(Base64.getDecoder().decode(token));
+		ClientUtil.register(role.getName(), fullToken);
 		return userRole;
 	}
 
@@ -177,12 +183,11 @@ public class UserService extends HttpBodyHandler {
 			String password) throws Exception {
 		try {
 
-			JsonNode user = client.getResource("User", namespace, username);
-			String base64DecodePassword = getBase64DecodePassword(getPasswordFromUser(user.get("spec")));
-			if (base64DecodePassword
-								.equals(password)) {
+			JsonNode userSpec = client.getResource("User", namespace, username).get("spec");
+			String base64DecodePassword = getBase64DecodePassword(getPasswordFromUser(userSpec));
+			if (base64DecodePassword.equals(password)) {
 				ObjectNode node = new ObjectMapper().createObjectNode();
-				node.put("token", username + "-" + user.get("spec").get("token").asText().substring(0, 8));
+				node.put("token", ClientUtil.getToken(geRoleFromUser(userSpec)));
 				return node;
 			} else {
 				throw new Exception("wrong password.");
@@ -203,46 +208,12 @@ public class UserService extends HttpBodyHandler {
 	
 	
 	/**
-	 * @param value                  value
-	 * @param expected               expected
-	 * @return                       true or false
-	 */
-	protected boolean isExpected(String value, String expected)  {
-		return value.equals(expected);
-	}
-	
-	/**
-	 * @param password               password
-	 * @return                       base64-based password
-	 */
-	protected String getBase64Password(String password) {
-		return StringUtil.isBase64(password) ? password :
-				Base64.getEncoder().encodeToString(password.getBytes());
-	}
-	/**
 	 * @param password               password
 	 * @return                       encodePassword
 	 */
 	protected String getBase64DecodePassword(String password) {
 		return StringUtil.isBase64(password) ?
 				new String(Base64.getDecoder().decode(password)) : password;
-	}
-	
-	/**
-	 * @param spec                  spec
-	 * @return                      name
-	 */
-	protected String getNameFromUser(JsonNode spec) {
-		return spec.get("role").get("name").asText();
-	}
-
-	/**
-	 * @param spec                  spec
-	 * @return                      namespace
-	 */
-	protected String getNamespaceFromUser(JsonNode spec) {
-		return spec.get("role").has("namespace") ? 
-				spec.get("role").get("namespace").asText() : "default";
 	}
 	
 	/**
@@ -255,54 +226,10 @@ public class UserService extends HttpBodyHandler {
 	
 	/**
 	 * @param spec                   spec
-	 * @return                       user
-	 * @throws Exception             exception
+	 * @return                       password
 	 */
-	protected ObjectNode completeUser(String user, JsonNode spec) throws Exception {
-		ObjectNode newSpec = new ObjectMapper().createObjectNode();
-		newSpec.put("password", getBase64Password(
-				getPasswordFromUser(spec)));
-		newSpec.set("role", spec.get("role"));
-		String token = KubeUtil.getToken(client, 
-				getNamespaceFromUser(spec), 
-				getNameFromUser(spec));
-		newSpec.put("token", token);
-		newSpec.set("info", spec.get("info"));
-		ClientUtil.createClientIfNotExist(user + "-" + token.substring(0, 8));
-		return newSpec;
+	protected String geRoleFromUser(JsonNode spec) {
+		return spec.get("role").asText();
 	}
 	
-	public static class User {
-		
-		protected String name;
-		
-		protected String password;
-		
-		protected String role;
-
-		public String getName() {
-			return name;
-		}
-
-		public void setName(String name) {
-			this.name = name;
-		}
-
-		public String getPassword() {
-			return password;
-		}
-
-		public void setPassword(String password) {
-			this.password = password;
-		}
-
-		public String getRole() {
-			return role;
-		}
-
-		public void setRole(String role) {
-			this.role = role;
-		}
-		
-	}
 }
