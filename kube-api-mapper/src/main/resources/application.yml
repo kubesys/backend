@@ -4,3 +4,7 @@ server:
   servlet:
     context-path: /kubesys
     
+spring:
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
