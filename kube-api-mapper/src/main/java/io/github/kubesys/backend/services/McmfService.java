@@ -13,11 +13,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
+import io.github.kubesys.httpfrk.cores.HttpHandler;
+import io.github.kubesys.tools.annotations.ServiceDefinition;
 
 /**
  * @author xuyuanjia2017@otcaix.iscas.ac.cn
@@ -25,9 +26,8 @@ import com.fasterxml.jackson.databind.JsonNode;
  *
  */
 
-@RestController
-@ComponentScan
-public class McmfService {
+@ServiceDefinition
+public class McmfService extends HttpHandler {
 
 	@GetMapping("/mcmf/solveBase")
 	public Object solveBase(JsonNode json) {
