@@ -9,8 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.github.kubesys.kubeclient.KubernetesClient;
-import io.github.kubesys.kubeclient.core.KubernetesRuleBase;
+import io.github.kubesys.client.KubernetesClient;
+import io.github.kubesys.client.core.KubernetesRuleBase;
 
 /**
  * @author wuheng@iscas.ac.cn

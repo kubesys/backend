@@ -16,7 +16,7 @@ import io.github.kubesys.backend.rbac.User;
 import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
-import io.github.kubesys.kubeclient.KubernetesClient;
+import io.github.kubesys.client.KubernetesClient;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;

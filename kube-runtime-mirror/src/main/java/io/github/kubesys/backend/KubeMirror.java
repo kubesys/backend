@@ -15,10 +15,10 @@ import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.github.kubesys.kubeclient.KubernetesClient;
-import io.github.kubesys.kubeclient.KubernetesConstants;
-import io.github.kubesys.kubeclient.KubernetesWatcher;
-import io.github.kubesys.kubeclient.core.KubernetesRuleBase;
+import io.github.kubesys.client.KubernetesClient;
+import io.github.kubesys.client.KubernetesConstants;
+import io.github.kubesys.client.KubernetesWatcher;
+import io.github.kubesys.client.core.KubernetesRuleBase;
 
 
 /**

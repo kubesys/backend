@@ -3,7 +3,7 @@
  */
 package io.github.kubesys.backend;
 
-import io.github.kubesys.kubeclient.KubernetesClient;
+import io.github.kubesys.client.KubernetesClient;
 
 /**
  * @author wuheng@otcaix.iscas.ac.cn

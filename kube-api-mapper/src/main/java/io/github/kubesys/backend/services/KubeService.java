@@ -18,7 +18,7 @@ import com.github.kubesys.tools.annotations.ServiceDefinition;
 import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.FrontendUtils;
 import io.github.kubesys.backend.utils.StringUtil;
-import io.github.kubesys.kubeclient.KubernetesConstants;
+import io.github.kubesys.client.KubernetesConstants;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;

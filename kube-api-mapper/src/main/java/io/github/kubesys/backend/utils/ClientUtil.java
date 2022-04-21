@@ -11,8 +11,8 @@ import java.util.logging.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.github.kubesys.backend.SQLMapper;
-import io.github.kubesys.kubeclient.KubernetesCRDWacther;
-import io.github.kubesys.kubeclient.KubernetesClient;
+import io.github.kubesys.client.KubernetesCRDWacther;
+import io.github.kubesys.client.KubernetesClient;
 
 
 /**
@@ -100,7 +100,7 @@ public class ClientUtil {
 		String token = roleToTokenMapper.remove(role);
 		KubernetesClient rmClient = ClientUtil.tokenToclientMapper.remove(token);
 		try {
-			rmClient.getHttpCaller().getHttpClient().close();
+			rmClient.getRequester().getHttpClient().close();
 			rmClient = null;
 		} catch (Exception ex) {
 			
