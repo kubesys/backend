@@ -12,21 +12,22 @@
 	<description>kube-api-mapper</description>
 
 	<properties>
-		<kubehttp.version>2.2.2</kubehttp.version>
+		<kubehttp.version>1.0.0</kubehttp.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>io.github.kubesys</groupId>
-			<artifactId>httpfrk-core</artifactId>
+			<artifactId>httpfrk-springboot</artifactId>
 			<version>${kubehttp.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>io.github.kubesys</groupId>
 			<artifactId>kube-common</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+
 	</dependencies>
 
 	<repositories>
@@ -53,7 +54,7 @@
 			</properties>
 		</profile>
 	</profiles>
-	
+
 	<build>
 		<plugins>
 			<plugin>
@@ -153,5 +154,5 @@
 			</plugin>
 		</plugins>
 	</build>
-	
+
 </project>

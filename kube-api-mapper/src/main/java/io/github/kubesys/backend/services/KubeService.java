@@ -12,16 +12,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.kubesys.httpfrk.core.HttpBodyHandler;
-import com.github.kubesys.tools.annotations.ServiceDefinition;
 
 import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.FrontendUtils;
 import io.github.kubesys.backend.utils.StringUtil;
 import io.github.kubesys.client.KubernetesConstants;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
+import io.github.kubesys.httpfrk.cores.HttpHandler;
+import io.github.kubesys.tools.annotations.ServiceDefinition;
 
 /**
  * @author wuheng@iscas.ac.cn
@@ -47,8 +44,7 @@ import io.swagger.annotations.ApiParam;
  */
 
 @ServiceDefinition
-@Api(value = "基于Kubernetes规范的资源生命周期管理")
-public class KubeService extends HttpBodyHandler {
+public class KubeService extends HttpHandler {
 
 	
 	/*************************************************************************
@@ -67,10 +63,9 @@ public class KubeService extends HttpBodyHandler {
 	 * @return                         json
 	 * @throws Exception               exception
 	 */
-	@ApiOperation(value = "创建基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode createResource(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode json)
+			String token,
+			JsonNode json)
 			throws Exception {
 
 		return ClientUtil.getClient(token).createResource(json);
@@ -84,10 +79,9 @@ public class KubeService extends HttpBodyHandler {
 	 * @return                         json
 	 * @throws Exception               exception
 	 */
-	@ApiOperation(value = "更新基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode updateResource(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode json)
+			String token,
+			JsonNode json)
 			throws Exception {
 		
 		return ClientUtil.getClient(token).updateResource(json);
@@ -101,10 +95,9 @@ public class KubeService extends HttpBodyHandler {
 	 * @return                         json
 	 * @throws Exception               exception
 	 */
-	@ApiOperation(value = "创建或者更新基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode createOrUpdateResource(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode json)
+			String token,
+			JsonNode json)
 			throws Exception {
 		try {
 			return ClientUtil.getClient(token).createResource(json);
@@ -123,12 +116,11 @@ public class KubeService extends HttpBodyHandler {
 	 * @return json                   json
 	 * @throws Exception              exception
 	 */
-	@ApiOperation(value = "删除基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode deleteResource(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "注册到Kubernetes类型", required = true, example = "Pod") String kind,
-			@ApiParam(value = "命名空间", required = true, example = "字符串或者\"\"") String namespace,
-			@ApiParam(value = "资源名", required = true, example = "test") String name) 
+			String token,
+			String kind,
+			String namespace,
+			String name) 
 			throws Exception {
 
 		return ClientUtil.getClient(token).deleteResource(kind, namespace, name);
@@ -144,12 +136,11 @@ public class KubeService extends HttpBodyHandler {
 	 * @return json                   json
 	 * @throws Exception              exception
 	 */
-	@ApiOperation(value = "获取基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode getResource(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "注册到Kubernetes类型", required = true, example = "Pod") String kind,
-			@ApiParam(value = "命名空间", required = true, example = "字符串或者\"\"") String namespace,
-			@ApiParam(value = "资源名", required = true, example = "test") String name) throws Exception {
+			String token,
+			String kind,
+			String namespace,
+			String name) throws Exception {
 		
 		try {
 			return ClientUtil.getClient(token).getResource(kind, namespace, name.toLowerCase());
@@ -194,13 +185,12 @@ public class KubeService extends HttpBodyHandler {
 	 * @return json                   json
 	 * @throws Exception              exception
 	 */
-	@ApiOperation(value = "按需查询基于Kubernetes规范的资源，可以是自定义资源CRD")
 	public JsonNode listResources(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "注册到Kubernetes类型", required = true, example = "Pod") String kind,
-			@ApiParam(value = "每页显示多少数据", required = true, example = "10") int limit,
-			@ApiParam(value = "显示第几页的数据", required = true, example = "1") int page,
-			@ApiParam(value = "查询条件", required = false, example = "根据json格式，如<metadata#name,henry>") Map<String, String> labels)
+			String token,
+			String kind,
+			int limit,
+			int page,
+			Map<String, String> labels)
 			throws Exception {
 
 			try {
@@ -227,8 +217,8 @@ public class KubeService extends HttpBodyHandler {
 	 * @throws Exception               exception
 	 */
 	public JsonNode queryResourceCount (
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode data)
+			String token,
+			JsonNode data)
 			throws Exception {
 			
 		String fullKind = getFullKind(token, data.get("link").asText());
@@ -245,8 +235,8 @@ public class KubeService extends HttpBodyHandler {
 	 * @throws Exception                exception
 	 */
 	public JsonNode queryResourceValue (
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}") JsonNode data)
+			String token,
+			JsonNode data)
 			throws Exception {
 		
 		if (data.get("kind").asText().contains("ConfigMap")) {
@@ -291,8 +281,7 @@ public class KubeService extends HttpBodyHandler {
 	 * @throws Exception                 exception
 	 */
 	protected JsonNode getComponents(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token
-			) throws Exception {
+			 String token) throws Exception {
 		
 		Set<String> set = new HashSet<>();
 		
@@ -379,8 +368,8 @@ public class KubeService extends HttpBodyHandler {
 	 * @throws Exception    exception
 	 */
 	protected String getApiVersion(
-			@ApiParam(value = "权限凭证，关联到Kubernetes的Secret", required = true, example = "5kh562.a1sagksdyyk6ivs1") String token,
-			@ApiParam(value = "注册到Kubernetes类型", required = true, example = "Pod") String kind) throws Exception {
+			String token,
+			String kind) throws Exception {
 		
 		JsonNode mapper = ClientUtil.getClient(token).getFullKinds();
 		return mapper.has(kind) ? mapper.get(kind).get("apiVersion").asText() : "";

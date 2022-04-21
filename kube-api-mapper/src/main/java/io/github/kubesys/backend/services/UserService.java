@@ -8,8 +8,6 @@ import java.util.Base64;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.kubesys.httpfrk.core.HttpBodyHandler;
-import com.github.kubesys.tools.annotations.ServiceDefinition;
 
 import io.github.kubesys.backend.rbac.Role;
 import io.github.kubesys.backend.rbac.User;
@@ -17,9 +15,8 @@ import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
 import io.github.kubesys.client.KubernetesClient;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
+import io.github.kubesys.httpfrk.cores.HttpHandler;
+import io.github.kubesys.tools.annotations.ServiceDefinition;
 
 
 /**
@@ -31,8 +28,7 @@ import io.swagger.annotations.ApiParam;
  * 
  */
 @ServiceDefinition
-@Api(value = "用户生命周期管理")
-public class UserService extends HttpBodyHandler {
+public class UserService extends HttpHandler {
     
 	protected KubernetesClient client = ClientUtil.getClient("default");
 	
@@ -41,9 +37,7 @@ public class UserService extends HttpBodyHandler {
 	 * @return                      json (kubectl get users)
 	 * @throws Exception            exception
 	 */
-	@ApiOperation(value = "创建用户，使用Kubernetes的规范")
 	public JsonNode createUser(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
 			User json) throws Exception {
 		
 		JsonNode roles = client.listResources("ServiceAccount", "default");
@@ -72,9 +66,7 @@ public class UserService extends HttpBodyHandler {
 	 * @return                      json (kubectl get users)
 	 * @throws Exception            exception
 	 */
-	@ApiOperation(value = "删除用户，使用Kubernetes的规范")
 	public JsonNode deleteUser(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"apiVersion\": \"v1\" ,\"kind\" : \"Pod\"}")
 			User json) throws Exception {
 		return client.deleteResource(json.toJson());
 	}
@@ -84,9 +76,7 @@ public class UserService extends HttpBodyHandler {
 	 * @return                      json (kubectl get userroles)
 	 * @throws Exception            exception
 	 */
-	@ApiOperation(value = "创建用户角色，使用Kubernetes的规范")
 	public JsonNode createUserRole(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
 			Role json) throws Exception {
 		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(json));
 		client.createResource(KubeUtil.createClusterRole(json.getName(), userRole.get("rules")));
@@ -113,9 +103,7 @@ public class UserService extends HttpBodyHandler {
 	 * @return                      json (kubectl get userroles)
 	 * @throws Exception            exception
 	 */
-	@ApiOperation(value = "更新用户角色信息，使用Kubernetes的规范")
 	public JsonNode updateUserRole(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
 			Role json) throws Exception {
 		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(json));
 		ObjectNode clusterRole = (ObjectNode) client.getResource("ClusterRole", "default", json.getName());
@@ -129,9 +117,7 @@ public class UserService extends HttpBodyHandler {
 	 * @return                      json (kubectl get userroles)
 	 * @throws Exception            exception
 	 */
-	@ApiOperation(value = "删除用户角色，使用Kubernetes的规范")
 	public JsonNode deleteUserRole(
-			@ApiParam(value = "基于Kubernetes规范的资源描述", required = true, example = "{\"name\": \"name\", \"rules\": [{ \"apiGroups\": [\"*\"],\"resources\": [\"*\"],\"verbs\": [\"*\"]}]}")
 			Role json) throws Exception {
 		ObjectNode userRole = (ObjectNode) new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(json));
 		client.deleteResource("ServiceAccount", "default", json.getName());
@@ -149,13 +135,9 @@ public class UserService extends HttpBodyHandler {
 	 * @return                      token
 	 * @throws Exception            exception 
 	 */
-	@ApiOperation(value = "登录")
 	public JsonNode login(
-			@ApiParam(value = "命名空间", required = true, example = "default")
 			String namespace, 
-			@ApiParam(value = "用户名", required = true, example = "admin")
 			String username, 
-			@ApiParam(value = "密码", required = true, example = "admin")
 			String password) throws Exception {
 		try {
 
@@ -180,11 +162,8 @@ public class UserService extends HttpBodyHandler {
 	 * @return                       json(role and avatar)
 	 * @throws Exception			 exception
 	 */
-	@ApiOperation(value = "获取用户信息")
 	public JsonNode getUserInfo(
-			@ApiParam(value = "命名空间", required = true, example = "default")
 			String namespace, 
-			@ApiParam(value = "用户名", required = true, example = "admin")
 			String username) throws Exception {
 			try {
 				JsonNode spec = client.getResource("User", namespace, username).get("spec");
