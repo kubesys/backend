@@ -166,7 +166,7 @@ public class UserService extends HttpHandler {
 			String namespace, 
 			String username) throws Exception {
 			try {
-				JsonNode spec = client.getResource("User", namespace, username).get("spec");
+				JsonNode spec = client.getResource("doslab.io.User", namespace, username).get("spec");
 				ObjectNode res = new ObjectMapper().createObjectNode();
 				res.put("role", spec.get("role").asText());
 				return res;
