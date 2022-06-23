@@ -141,7 +141,7 @@ public class UserService extends HttpHandler {
 			String password) throws Exception {
 		try {
 
-			JsonNode userSpec = client.getResource("User", namespace, username).get("spec");
+			JsonNode userSpec = client.getResource("doslab.io.User", namespace, username).get("spec");
 			String base64DecodePassword = getBase64DecodePassword(getPasswordFromUser(userSpec));
 			if (base64DecodePassword.equals(password)) {
 				ObjectNode node = new ObjectMapper().createObjectNode();

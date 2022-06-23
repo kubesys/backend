@@ -28,8 +28,6 @@ import io.github.kubesys.tools.annotations.ServiceDefinition;
 
 @ServiceDefinition
 public class McmfService extends HttpHandler {
-
-	@GetMapping("/mcmf/solveBase")
 	public Object solveBase(JsonNode json) {
 		NetworkFlowSolverBase nfsb = NetworkUtil.initializeSolver(json);
 		NetworkUtil.constructBellmanFordGraph(nfsb, json);
