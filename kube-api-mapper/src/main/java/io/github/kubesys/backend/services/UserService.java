@@ -151,7 +151,7 @@ public class UserService extends HttpHandler {
 				throw new Exception("wrong password.");
 			}
 		} catch (Exception ex) {
-			throw new Exception("cannot find valid User [" + username + "] in namespace [" + namespace + "], it may not exist or does not have token");
+			throw new Exception("cannot find valid User [\" + username + \"] in namespace [\" + namespace + \"], it may not exist or does not have token");
 		}
 		
     }
@@ -171,6 +171,7 @@ public class UserService extends HttpHandler {
 				res.put("role", spec.get("role").asText());
 				return res;
 			}catch (Exception e) {
+				e.printStackTrace();
 				throw new Exception("can not get user resource or do not have specific field");
 			}
 	}
