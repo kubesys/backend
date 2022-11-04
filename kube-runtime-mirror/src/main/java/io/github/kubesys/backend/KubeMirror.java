@@ -4,11 +4,9 @@
 package io.github.kubesys.backend;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -24,6 +22,9 @@ import io.github.kubesys.client.core.KubernetesRuleBase;
 /**
  * @author wuheng@iscas.ac.cn
  * @since  2.0.0
+ * 
+ * This class is used for extracting data from Kubernetes,
+ * and store it to database.
  */
 public class KubeMirror {
 
@@ -35,17 +36,17 @@ public class KubeMirror {
 	/**
 	 * sources
 	 */
-	public Set<String> sources = new HashSet<>();
+	public Set<String> kindChannels = new HashSet<>();
 
 	/**
 	 * kubeClient
 	 */
-	protected KubernetesClient kubeClient;
+	protected KubernetesClient fromKube;
 	
 	/**
 	 * sql client
 	 */
-	protected SQLMapper sqlMapper;
+	protected SQLMapper toSQL;
 	
 	
 	/**
@@ -63,8 +64,8 @@ public class KubeMirror {
 	
 	public KubeMirror(KubernetesClient kubeClient) throws Exception {
 		try {
-			this.kubeClient = kubeClient;
-			this.sqlMapper = new SQLMapper();
+			this.fromKube = kubeClient;
+			this.toSQL = new SQLMapper();
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			System.exit(1);
@@ -73,20 +74,29 @@ public class KubeMirror {
 
 
 	/**
+	 * @throws Exception                    exception
+	 */
+	public void start() throws Exception {
+		fromKuberbetes().toDatabase();
+	}
+	
+	/**
+	 * @param  kind                         kind
+	 * @throws Exception                    exception
+	 */
+	public void start(String kind) throws Exception {
+		fromKuberbetes(kind).toDatabase();
+	}
+	
+	/**
 	 * @return                               mirror
 	 * @throws Exception                     exception
 	 */
-	public KubeMirror fromSources() throws Exception {
-		List<String> fullKinds = new ArrayList<>();
+	public KubeMirror fromKuberbetes() throws Exception {
 		try {
-			KubernetesRuleBase ruleBase = this.kubeClient.getAnalyzer()
-					.getConvertor().getRuleBase();
-			for (List<String> fullkinds : ruleBase.getFullKinds().values()) {
-				for (String fullKind : fullkinds) {
-					fullKinds.add(fullKind);
-				}
-			}
-			return fromSource(fullKinds.toArray(new String[] {}));
+			KubernetesRuleBase ruleBase = this.fromKube.getAnalyzer()
+										.getConvertor().getRuleBase();
+			return fromSource(ruleBase.getFullKinds().values().toArray(new String[] {}));
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			System.exit(1);
@@ -100,10 +110,8 @@ public class KubeMirror {
 	 * @return                               mirror
 	 * @throws Exception                     exception
 	 */
-	public KubeMirror fromSource(String fullKind) throws Exception {
-		String[] fullkinds = new String[1];
-		fullkinds[0] = fullKind;
-		return fromSource(fullkinds);
+	public KubeMirror fromKuberbetes(String fullKind) throws Exception {
+		return fromSource(new String[] {fullKind});
 	}
 	
 	/**
@@ -112,56 +120,48 @@ public class KubeMirror {
 	 * @throws Exception                     exception
 	 */
 	public KubeMirror fromSource(String[] fullkinds) throws Exception {
+		
 		for (String fullkind : fullkinds) {
-			this.sources.add(fullkind);
 			
-			String table = this.kubeClient.getAnalyzer()
+			this.kindChannels.add(fullkind);
+			
+			String table = this.fromKube.getAnalyzer()
 					.getConvertor().getRuleBase().getName(fullkind);
 
-			if (table.contains("/") || table.contains("-")) {
-				continue;
-			}
-			
-			if (!sqlMapper.createTable(table)) {
-				KubeUtils.createMeatadata(getKubeClient(), fullkind);
-			}
+			createTableIfNeeds(fullkind, table);
 			
 		}
 		return this;
 	}
-	
-	/**
-	 * @throws Exception                    exception
-	 */
-	public void start() throws Exception {
-		fromSources().toTargets();
-	}
-	
-	/**
-	 * @param  kind                         kind
-	 * @throws Exception                    exception
-	 */
-	public void start(String kind) throws Exception {
-		fromSource(kind).toTargets();
-	}
-	
-	/**
-	 * @param  kinds                        kinds
-	 * @throws Exception                    exception
-	 */
-	public void start(String[] kinds) throws Exception {
-		fromSource(kinds).toTargets();
+
+
+	private void createTableIfNeeds(String fullkind, String table) throws Exception {
+		
+		if (invalidTableName(table) || createdTable(table)) {
+			return;
+		}
+		
+		toSQL.createTable(table);
 	}
 
+
+	private boolean createdTable(String table) throws Exception {
+		return toSQL.checkTable(table);
+	}
+
+	private boolean invalidTableName(String table) {
+		return table.contains("/") || table.contains("-");
+	}
+	
 
 	/**
 	 * @return                              mirror
 	 * @throws Exception                    exception
 	 */
-	protected KubeMirror toTargets() throws Exception {
-		for (String kind : sources) {
+	protected KubeMirror toDatabase() throws Exception {
+		for (String kind : kindChannels) {
 			try {
-				doWatcher(kind);
+				createKubeToSQLChannel(kind);
 			} catch (Exception ex) {
 				m_logger.severe(ex.toString());
 				continue;
@@ -174,15 +174,17 @@ public class KubeMirror {
 	 * @param kind                          kind
 	 * @throws Exception                    exception
 	 */
-	protected void doWatcher(String kind) throws Exception {
+	protected void createKubeToSQLChannel(String kind) throws Exception {
 		
-		KubernetesRuleBase ruleBase = this.kubeClient.getAnalyzer().getConvertor().getRuleBase();
+		KubernetesRuleBase ruleBase = this.fromKube.getAnalyzer()
+									.getConvertor().getRuleBase();
+		
 		String table = ruleBase.getName(kind);
 
 		try {
 			m_logger.info("starting Watcher " + kind);
-			SourceToSink watcher = new SourceToSink(kind, table, this);
-			watchers.put(table, this.kubeClient.watchResources(kind, watcher));
+			KubeToSQL toSQL = new KubeToSQL(kind, table, this);
+			watchers.put(table, this.fromKube.watchResources(kind, toSQL));
 			m_logger.info("Watcher " + kind + " is working");
 		} catch (Exception ex) {
 			m_logger.info("fail to start Watcher " + kind);
@@ -196,8 +198,8 @@ public class KubeMirror {
 	 * @throws Exception              exception
 	 */
 	protected void deleteDataIfTableExit(String table) throws Exception {
-		if (sqlMapper.checkTable(table)) {
-			sqlMapper.deleteData(table);
+		if (createdTable(table)) {
+			toSQL.deleteData(table);
 		}
 	}
 	
@@ -207,9 +209,9 @@ public class KubeMirror {
 	 */
 	@SuppressWarnings("deprecation")
 	protected void stopWatcher(String kind) throws Exception {
-		String table = this.kubeClient.getAnalyzer().getConvertor().getRuleBase().getName(kind);
-		if (sqlMapper.checkTable(table)) {
-			sqlMapper.dropTable(table);
+		String table = this.fromKube.getAnalyzer().getConvertor().getRuleBase().getName(kind);
+		if (createdTable(table)) {
+			toSQL.dropTable(table);
 		} 
 		watchers.get(table).stop();
 		watchers.remove(table);
@@ -217,10 +219,10 @@ public class KubeMirror {
 	
 	
 	public void addSource(String kind) {
-		if (!sources.contains(kind)) {
-			sources.add(kind);
+		if (!kindChannels.contains(kind)) {
+			kindChannels.add(kind);
 			try {
-				doWatcher(kind);
+				createKubeToSQLChannel(kind);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -228,8 +230,8 @@ public class KubeMirror {
 	}
 	
 	public void deleteSource(String kind) {
-		if (sources.contains(kind)) {
-			sources.remove(kind);
+		if (kindChannels.contains(kind)) {
+			kindChannels.remove(kind);
 			try {
 				stopWatcher(kind);
 			} catch (Exception e) {
@@ -238,16 +240,16 @@ public class KubeMirror {
 	}
 
 	public boolean beenWatched(String kind) {
-		return watchers.containsKey(this.kubeClient
+		return watchers.containsKey(this.fromKube
 				.getAnalyzer().getConvertor().getRuleBase().getName(kind));
 	}
 
 	public KubernetesClient getKubeClient() {
-		return this.kubeClient;
+		return this.fromKube;
 	}
 
 	public SQLMapper getSqlClient() {
-		return sqlMapper;
+		return toSQL;
 	}
 	
 	
@@ -255,9 +257,9 @@ public class KubeMirror {
 	 * @author wuheng
 	 * @since 2019.4.20
 	 */
-	public static class SourceToSink extends KubernetesWatcher {
+	public static class KubeToSQL extends KubernetesWatcher {
 
-		public static final Logger m_logger = Logger.getLogger(SourceToSink.class.getName());
+		public static final Logger m_logger = Logger.getLogger(KubeToSQL.class.getName());
 
 		/**
 		 * kind
@@ -272,25 +274,25 @@ public class KubeMirror {
 		/**
 		 * sqlClient
 		 */
-		protected final KubeMirror kubeMirror;
+		protected final KubeMirror mirror;
 		
-		public SourceToSink(String kind, String table, KubeMirror kubeMirror) throws Exception {
+		public KubeToSQL(String kind, String table, KubeMirror kubeMirror) throws Exception {
 			super(kubeMirror.getKubeClient());
 			this.kind = kind;
 			this.table = table;
-			this.kubeMirror = kubeMirror;
+			this.mirror = kubeMirror;
 		}
 
 		@Override
 		public void doAdded(JsonNode json) {
 			try {
-				kubeMirror.getSqlClient().insertObject(table, KubeUtils.getName(json),
+				mirror.getSqlClient().insertObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
 						getGroup(json),
 						createDateTime(json),
 						currentDateTime(),
-//						json.toPrettyString());
 						KubeUtils.getJsonWithoutAnotation(json));
+				
 				m_logger.info("insert object  " + json + " successfully.");
 				
 				if ("CustomResourceDefinition".equals(json.get("kind").asText())) {
@@ -298,8 +300,7 @@ public class KubeMirror {
 					JsonNode names = spec.get(KubernetesConstants.KUBE_SPEC_NAMES);
 					String kind = names.get(KubernetesConstants.KUBE_SPEC_NAMES_KIND).asText();
 					String group = spec.get("group").asText();
-					kubeMirror.addSource(group + "." + kind);
-					KubeUtils.createMeatadata(kubeMirror.getKubeClient(), group + "." + kind);
+					mirror.addSource(group + "." + kind);
 				}
 				
 			} catch (Exception e) {
@@ -311,7 +312,7 @@ public class KubeMirror {
 		@Override
 		public void doModified(JsonNode json) {
 			try {
-				kubeMirror.getSqlClient().updateObject(table, KubeUtils.getName(json),
+				mirror.getSqlClient().updateObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
 						getGroup(json),
 						currentDateTime(),
@@ -326,10 +327,12 @@ public class KubeMirror {
 		@Override
 		public void doDeleted(JsonNode json) {
 			try {
-				kubeMirror.getSqlClient().deleteObject(table, KubeUtils.getName(json),
+				
+				mirror.getSqlClient().deleteObject(table, KubeUtils.getName(json),
 						KubeUtils.getNamespace(json),
 						getGroup(json),
 						KubeUtils.getJsonWithoutAnotation(json));
+				
 				m_logger.info("delete object  " + json + " successfully.");
 				
 				if ("CustomResourceDefinition".equals(json.get("kind").asText())) {
@@ -337,8 +340,7 @@ public class KubeMirror {
 					JsonNode names = spec.get(KubernetesConstants.KUBE_SPEC_NAMES);
 					String kind = names.get(KubernetesConstants.KUBE_SPEC_NAMES_KIND).asText();
 					String group = spec.get("group").asText();
-					kubeMirror.deleteSource(group + "." + kind);
-					kubeMirror.getKubeClient().deleteResource("doslab.io.Metadata", group + "." + kind);
+					mirror.deleteSource(group + "." + kind);
 				}
 				
 			} catch (Exception e) {
@@ -350,8 +352,8 @@ public class KubeMirror {
 		@Override
 		public void doClose() {
 			try {
-				client.watchResources(kind, new SourceToSink(
-						kind, table, kubeMirror));
+				client.watchResources(kind, new KubeToSQL(
+						kind, table, mirror));
 			} catch (Exception e) {
 				System.exit(1);
 			}

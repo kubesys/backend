@@ -5,12 +5,7 @@ package io.github.kubesys.backend;
 
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import io.github.kubesys.client.KubernetesClient;
-import io.github.kubesys.client.core.KubernetesRuleBase;
 
 /**
  * @author wuheng@iscas.ac.cn
@@ -40,6 +35,7 @@ public class KubeUtils {
 	public static String getJsonWithoutAnotation(JsonNode json) throws Exception {
 		ObjectNode node = json.deepCopy();
 		ObjectNode meta = node.get(YAML_METADATA).deepCopy();
+		
 		if (meta.has(YAML_METADATA_ANNOTATIONS)) {
 			meta.remove(YAML_METADATA_ANNOTATIONS);
 		}
@@ -51,20 +47,6 @@ public class KubeUtils {
 		
 		node.remove(YAML_METADATA);
 		node.set(YAML_METADATA, meta);
-		
-		// is ConfigMap
-		if (node.has(YAML_CONFIGMAP_DATA)) {
-			node.remove(YAML_CONFIGMAP_DATA);
-		}
-		
-//		value = toMysqlJSON(value, "&", "\\u0026");
-//		value = toMysqlJSON(value, ">", "\\u003e");
-//		value = toMysqlJSON(value, "<", "\\u003c");
-//		value = toMysqlJSON(value, "\'", " \\'");
-//		value = toMysqlJSON(value, "\\\"", "\\\\\\\"");
-//		value = toMysqlJSON(value, "\\n", "\\\\n");
-//		value = toMysqlJSON(value, "\\\\\\\\\\\"", "\\\\\\\"");
-//		value = toMysqlJSON(value, "\\\\d", "\\\\\\\\d");
 		
 		return toJSON(node.toPrettyString(), "\'", "");
 	}
@@ -113,43 +95,44 @@ public class KubeUtils {
 				? meta.get(YAML_METADATA_NAMESPACE).asText() : "default";
 	}
 	
-	public static void createMeatadata(KubernetesClient client, String fullkind) {
-		KubernetesRuleBase ruleBase = client.getAnalyzer()
-				.				getConvertor().getRuleBase();
-		
-		ObjectNode json = new ObjectMapper().createObjectNode();
-		json.put("apiVersion", "doslab.io/v1");
-		json.put("kind", "Metadata");
-		
-		ObjectNode meta = new ObjectMapper().createObjectNode();
-		meta.put("name", fullkind.toLowerCase());
-		json.set("metadata", meta);
-		
-		ObjectNode spec = new ObjectMapper().createObjectNode();
-		spec.put("kind", ruleBase.getKind(fullkind));
-		spec.put("fullkind", fullkind);
-		spec.put("group", ruleBase.getGroup(fullkind));
-		spec.put("version", ruleBase.getVersion(fullkind));
-		spec.put("api", ruleBase.getApiPrefix(fullkind));
-		spec.put("namespaced", ruleBase.isNamespaced(fullkind) ? "Namespace" : "Cluster");
-		
-		// "create", "delete", "deletecollection", "get", "list", "patch", "update", "watch" 
-		ArrayNode verbs = new ObjectMapper().createArrayNode();
-		verbs.add("create");
-		verbs.add("delete");
-		verbs.add("deletecollection");
-		verbs.add("get");
-		verbs.add("list");
-		verbs.add("patch");
-		verbs.add("update");
-		verbs.add("watch");
-		
-		spec.set("verbs", verbs);
-		json.set("spec", spec);
-		
-		try {
-			client.createResource(json);
-		} catch (Exception e) {
-		}
-	}
+	
+//	public static void createMeatadata(KubernetesClient client, String fullkind) {
+//		KubernetesRuleBase ruleBase = client.getAnalyzer()
+//				.				getConvertor().getRuleBase();
+//		
+//		ObjectNode json = new ObjectMapper().createObjectNode();
+//		json.put("apiVersion", "doslab.io/v1");
+//		json.put("kind", "Metadata");
+//		
+//		ObjectNode meta = new ObjectMapper().createObjectNode();
+//		meta.put("name", fullkind.toLowerCase());
+//		json.set("metadata", meta);
+//		
+//		ObjectNode spec = new ObjectMapper().createObjectNode();
+//		spec.put("kind", ruleBase.getKind(fullkind));
+//		spec.put("fullkind", fullkind);
+//		spec.put("group", ruleBase.getGroup(fullkind));
+//		spec.put("version", ruleBase.getVersion(fullkind));
+//		spec.put("api", ruleBase.getApiPrefix(fullkind));
+//		spec.put("namespaced", ruleBase.isNamespaced(fullkind) ? "Namespace" : "Cluster");
+//		
+//		// "create", "delete", "deletecollection", "get", "list", "patch", "update", "watch" 
+//		ArrayNode verbs = new ObjectMapper().createArrayNode();
+//		verbs.add("create");
+//		verbs.add("delete");
+//		verbs.add("deletecollection");
+//		verbs.add("get");
+//		verbs.add("list");
+//		verbs.add("patch");
+//		verbs.add("update");
+//		verbs.add("watch");
+//		
+//		spec.set("verbs", verbs);
+//		json.set("spec", spec);
+//		
+//		try {
+//			client.createResource(json);
+//		} catch (Exception e) {
+//		}
+//	}
 }

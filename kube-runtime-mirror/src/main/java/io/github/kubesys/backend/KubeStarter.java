@@ -26,13 +26,9 @@ public class KubeStarter {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		KubernetesClient kubeClient = new KubernetesClient(
-									System.getenv("kubeUrl"), 
-									System.getenv("kubeToken"));
-		
+		KubernetesClient kubeClient = new KubernetesClient();
 		
 		KubeMirror kubeMirror = new KubeMirror(kubeClient);
-//		kubeMirror.start(new String[] {"Pod"});
 		kubeMirror.start();
 		
 		KubePinger kubePinger = new KubePinger(kubeClient);
