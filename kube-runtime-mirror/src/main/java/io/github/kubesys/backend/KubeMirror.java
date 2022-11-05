@@ -62,10 +62,10 @@ public class KubeMirror {
 	 * 
 	 *****************************************************************************/
 	
-	public KubeMirror(KubernetesClient kubeClient) throws Exception {
+	public KubeMirror(KubernetesClient fromKube, SQLMapper toSQL) throws Exception {
 		try {
-			this.fromKube = kubeClient;
-			this.toSQL = new SQLMapper();
+			this.fromKube = fromKube;
+			this.toSQL = toSQL;
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			System.exit(1);
@@ -96,7 +96,9 @@ public class KubeMirror {
 		try {
 			KubernetesRuleBase ruleBase = this.fromKube.getAnalyzer()
 										.getConvertor().getRuleBase();
-			return fromSource(ruleBase.getFullKinds().values().toArray(new String[] {}));
+			String[] byKinds = ruleBase.fullKindToKindMapper
+										.keySet().toArray(new String[] {});
+			return fromSource(byKinds);
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			System.exit(1);
@@ -104,6 +106,7 @@ public class KubeMirror {
 
 		return this;
 	}
+	
 	
 	/**
 	 * @param  fullKind                      kind

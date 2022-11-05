@@ -26,12 +26,14 @@ public class KubeStarter {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		KubernetesClient kubeClient = new KubernetesClient();
+		KubernetesClient fromKube = new KubernetesClient();
 		
-		KubeMirror kubeMirror = new KubeMirror(kubeClient);
+		SQLMapper toSQL = new SQLMapper();
+		
+		KubeMirror kubeMirror = new KubeMirror(fromKube, toSQL);
 		kubeMirror.start();
 		
-		KubePinger kubePinger = new KubePinger(kubeClient);
+		KubePinger kubePinger = new KubePinger(fromKube);
 		kubePinger.start();
 		
 	}

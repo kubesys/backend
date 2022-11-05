@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.springframework.web.bind.annotation.GetMapping;
-
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.github.kubesys.httpfrk.cores.HttpHandler;
