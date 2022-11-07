@@ -5,9 +5,8 @@ package com.github.kubesys.operators;
 
 import java.sql.ResultSet;
 
-
-import io.github.kubesys.backend.SQLMapper;
-import io.github.kubesys.backend.utils.ClientUtil;
+import io.github.kubesys.backend.KubeClient;
+import io.github.kubesys.backend.SQLClient;
 import io.github.kubesys.datafrk.core.Table;
 import io.github.kubesys.datafrk.core.operators.QueryData;
 
@@ -19,7 +18,7 @@ public class GetTokenTest {
 
 	
 	public static void main(String[] args) throws Exception {
-		SQLMapper sqlMapper = ClientUtil.sqlMapper();
+		SQLClient sqlMapper = KubeClient.sqlMapper();
 		Table<?> table = null;
 		for (Table<?> t : sqlMapper.listTables()) {
 			if (t.name().equals("secrets")) {

@@ -9,13 +9,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.github.kubesys.backend.KubeClient;
 import io.github.kubesys.backend.rbac.Role;
 import io.github.kubesys.backend.rbac.User;
-import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
 import io.github.kubesys.client.KubernetesClient;
-import io.github.kubesys.httpfrk.cores.HttpHandler;
+import io.github.kubesys.specs.httpfrk.cores.HttpHandler;
 import io.github.kubesys.tools.annotations.ServiceDefinition;
 
 
@@ -30,7 +30,7 @@ import io.github.kubesys.tools.annotations.ServiceDefinition;
 @ServiceDefinition
 public class UserService extends HttpHandler {
     
-	protected KubernetesClient client = ClientUtil.getClient("default");
+	protected KubernetesClient client = KubeClient.getClient("default");
 	
 	/**
 	 * @param json                  user 
@@ -91,7 +91,7 @@ public class UserService extends HttpHandler {
 		String token = client.getResource("Secret", "default", secretName)
 								.get("data").get("token").asText();
 		String fullToken = new String(Base64.getDecoder().decode(token));
-		ClientUtil.register(json.getName(), fullToken);
+		KubeClient.register(json.getName(), fullToken);
 		userRole.put("token", fullToken);
 		return userRole;
 	}
@@ -123,7 +123,7 @@ public class UserService extends HttpHandler {
 		client.deleteResource("ServiceAccount", "default", json.getName());
 		client.deleteResource("ClusterRole", "default", json.getName());
 		client.deleteResource("ClusterRoleBinding", "default", json.getName());
-		ClientUtil.unregister(json.getName());
+		KubeClient.unregister(json.getName());
 		return userRole;
 	}
 
@@ -145,7 +145,7 @@ public class UserService extends HttpHandler {
 			String base64DecodePassword = getBase64DecodePassword(getPasswordFromUser(userSpec));
 			if (base64DecodePassword.equals(password)) {
 				ObjectNode node = new ObjectMapper().createObjectNode();
-				node.put("token", ClientUtil.getBearerToken(geRoleFromUser(userSpec)));
+				node.put("token", KubeClient.getBearerToken(geRoleFromUser(userSpec)));
 				return node;
 			} else {
 				throw new Exception("wrong password.");

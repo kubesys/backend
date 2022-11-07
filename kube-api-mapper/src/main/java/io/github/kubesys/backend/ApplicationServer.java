@@ -6,7 +6,7 @@ package io.github.kubesys.backend;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.annotation.ComponentScan;
 
-import io.github.kubesys.httpfrk.HttpServer;
+import io.github.kubesys.specs.httpfrk.HttpServer;
 
 
 /**

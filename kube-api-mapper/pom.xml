@@ -12,7 +12,7 @@
 	<description>kube-api-mapper</description>
 
 	<properties>
-		<kubehttp.version>1.0.0</kubehttp.version>
+		<kubehttp.version>1.2.0</kubehttp.version>
 	</properties>
 
 	<dependencies>
@@ -37,23 +37,7 @@
 			<url>http://120.46.180.58:31016/repository/maven-public/</url>
 		</repository>
 	</repositories>
-
-	<profiles>
-		<profile>
-			<id>sonar</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
-			<properties>
-				<sonar.jdbc.url>jdbc:postgresql://120.46.180.58:30306/sonar</sonar.jdbc.url>
-				<sonar.jdbc.username>postgres</sonar.jdbc.username>
-				<sonar.jdbc.password>onceas</sonar.jdbc.password>
-				<sonar.host.url>http://120.46.180.58:31041</sonar.host.url>
-				<sonar.login>admin</sonar.login>
-				<sonar.password>admin123</sonar.password>
-			</properties>
-		</profile>
-	</profiles>
+	
 
 	<build>
 		<plugins>

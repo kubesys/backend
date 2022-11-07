@@ -15,7 +15,7 @@ import java.util.Random;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.github.kubesys.httpfrk.cores.HttpHandler;
+import io.github.kubesys.specs.httpfrk.cores.HttpHandler;
 import io.github.kubesys.tools.annotations.ServiceDefinition;
 
 /**

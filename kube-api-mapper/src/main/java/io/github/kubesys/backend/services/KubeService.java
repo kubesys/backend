@@ -13,11 +13,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.github.kubesys.backend.utils.ClientUtil;
+import io.github.kubesys.backend.KubeClient;
 import io.github.kubesys.backend.utils.FrontendUtils;
 import io.github.kubesys.backend.utils.StringUtil;
 import io.github.kubesys.client.KubernetesConstants;
-import io.github.kubesys.httpfrk.cores.HttpHandler;
+import io.github.kubesys.specs.httpfrk.cores.HttpHandler;
 import io.github.kubesys.tools.annotations.ServiceDefinition;
 
 /**
@@ -68,7 +68,7 @@ public class KubeService extends HttpHandler {
 			JsonNode json)
 			throws Exception {
 
-		return ClientUtil.getClient(token).createResource(json);
+		return KubeClient.getClient(token).createResource(json);
 	}
 
 	/**
@@ -84,7 +84,7 @@ public class KubeService extends HttpHandler {
 			JsonNode json)
 			throws Exception {
 		
-		return ClientUtil.getClient(token).updateResource(json);
+		return KubeClient.getClient(token).updateResource(json);
 	}
 
 	/**
@@ -100,9 +100,9 @@ public class KubeService extends HttpHandler {
 			JsonNode json)
 			throws Exception {
 		try {
-			return ClientUtil.getClient(token).createResource(json);
+			return KubeClient.getClient(token).createResource(json);
 		} catch (Exception e) {
-			return ClientUtil.getClient(token).updateResource(json);
+			return KubeClient.getClient(token).updateResource(json);
 		}
 	}
 
@@ -123,7 +123,7 @@ public class KubeService extends HttpHandler {
 			String name) 
 			throws Exception {
 
-		return ClientUtil.getClient(token).deleteResource(kind, namespace, name);
+		return KubeClient.getClient(token).deleteResource(kind, namespace, name);
 	}
 
 	/**
@@ -143,7 +143,7 @@ public class KubeService extends HttpHandler {
 			String name) throws Exception {
 		
 		try {
-			return ClientUtil.getClient(token).getResource(kind, namespace, name.toLowerCase());
+			return KubeClient.getClient(token).getResource(kind, namespace, name.toLowerCase());
 		} catch (Exception ex) {
 			if ((kind.equals("Template") || kind.equals("doslab.io.Template")) && name.endsWith("create")) {
 				return getTemplate(token, name); 
@@ -156,7 +156,7 @@ public class KubeService extends HttpHandler {
 					String json = FrontendUtils.getJson(key, name);
 					if (json != null) {
 						JsonNode result = new ObjectMapper().readTree(json);
-						ClientUtil.getClient(token).createResource(result);
+						KubeClient.getClient(token).createResource(result);
 						FrontendUtils.writeAsYaml(name, result);
 						return result;
 					}
@@ -195,13 +195,13 @@ public class KubeService extends HttpHandler {
 
 			try {
 				// check permissions
-				ClientUtil.getClient(token).listResources(kind, KubernetesConstants.VALUE_ALL_NAMESPACES, null, null, 1, null);
+				KubeClient.getClient(token).listResources(kind, KubernetesConstants.VALUE_ALL_NAMESPACES, null, null, 1, null);
 			} catch (Exception ex) {
 				// sql connection may timeout, retry it
 				throw new Exception("没有权限, 无法操作资源类型 " + kind + ". ");
 			}
 			
-			return ClientUtil.sqlMapper().query(getTable(token, getFullKind(token, kind)), 
+			return KubeClient.sqlMapper().query(getTable(token, getFullKind(token, kind)), 
 											getKind(kind), 
 											limit, page, 
 											(labels != null) ? labels : new HashMap<>());
@@ -222,7 +222,7 @@ public class KubeService extends HttpHandler {
 			throws Exception {
 			
 		String fullKind = getFullKind(token, data.get("link").asText());
-		return ClientUtil.sqlMapper().queryCount(getTable(token, fullKind),
+		return KubeClient.sqlMapper().queryCount(getTable(token, fullKind),
 						data.get("tag").asText(), data.get("value").asText());
 	}
 	
@@ -240,14 +240,14 @@ public class KubeService extends HttpHandler {
 			throws Exception {
 		
 		if (data.get("kind").asText().contains("ConfigMap")) {
-			return ClientUtil.getClient(token).getResource(
+			return KubeClient.getClient(token).getResource(
 					data.get("kind").asText(), 
 					data.get("namespace").asText(), 
 					data.get("name").asText()).get("data");
 		} else {
 			
 			String fullKind = getFullKind(token, data.get("kind").asText());
-			ArrayNode arrayNode = ClientUtil.sqlMapper().queryAll(
+			ArrayNode arrayNode = KubeClient.sqlMapper().queryAll(
 					getTable(token, fullKind), data.get("field").asText());
 			
 			ObjectNode json = new ObjectMapper().createObjectNode();
@@ -285,7 +285,7 @@ public class KubeService extends HttpHandler {
 		
 		Set<String> set = new HashSet<>();
 		
-		JsonNode navi = ClientUtil.getClient(token).getResource(
+		JsonNode navi = KubeClient.getClient(token).getResource(
 								"Frontend", "default", "routes-admin")
 								.get("spec").get("routes");
 		
@@ -340,7 +340,7 @@ public class KubeService extends HttpHandler {
 	 * @throws Exception            exception
 	 */
 	protected String getFullKind(String token, String userInputKind) throws Exception {
-		return userInputKind.indexOf(".") == -1 ? ClientUtil.getClient(token)
+		return userInputKind.indexOf(".") == -1 ? KubeClient.getClient(token)
 				.getAnalyzer().getConvertor().getRuleBase().getFullKind(userInputKind) : userInputKind;
 	}
 
@@ -371,7 +371,7 @@ public class KubeService extends HttpHandler {
 			String token,
 			String kind) throws Exception {
 		
-		JsonNode mapper = ClientUtil.getClient(token).getFullKinds();
+		JsonNode mapper = KubeClient.getClient(token).getFullKinds();
 		return mapper.has(kind) ? mapper.get(kind).get("apiVersion").asText() : "";
 	}
 	
@@ -382,6 +382,6 @@ public class KubeService extends HttpHandler {
 	 * @throws Exception             exception
 	 */
 	protected String getTable(String token, String kind) throws Exception {
-		return ClientUtil.getClient(token).getAnalyzer().getConvertor().getRuleBase().getName(kind);
+		return KubeClient.getClient(token).getAnalyzer().getConvertor().getRuleBase().getName(kind);
 	}
 }
