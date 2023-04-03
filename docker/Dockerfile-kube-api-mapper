@@ -1,7 +1,0 @@
-FROM openjdk:11.0.7-slim
-
-RUN mkdir -p /home/kube-api-mapper
-
-ADD kube-api-mapper.jar /home/kube-api-mapper/
-
-WORKDIR /home/kube-api-mapper
