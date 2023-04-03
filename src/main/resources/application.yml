@@ -1,0 +1,10 @@
+# General configuration
+server:
+  port: 30308
+  servlet:
+    context-path: /kubesys
+    
+spring:
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
