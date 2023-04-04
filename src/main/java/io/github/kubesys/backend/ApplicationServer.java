@@ -36,7 +36,8 @@ public class ApplicationServer extends HttpServer  {
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
-		KubernetesClient fromKube = new KubernetesClient();
+		KubernetesClient fromKube = new KubernetesClient(
+				System.getenv("kubeUrl"), System.getenv("kubeToken"));
 		SQLMapperClient toSQL = new SQLMapperClient();
 		
 		KubeMirrorClient kubeMirror = new KubeMirrorClient(fromKube, toSQL);

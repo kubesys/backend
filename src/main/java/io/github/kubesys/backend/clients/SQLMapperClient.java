@@ -35,6 +35,17 @@ import io.github.kubesys.backend.datafrk.operators.RemoveData;
 import io.github.kubesys.backend.datafrk.operators.RemoveDataBuilder;
 import io.github.kubesys.backend.datafrk.operators.UpdateData;
 import io.github.kubesys.backend.datafrk.operators.UpdateDataBuilder;
+import io.github.kubesys.backend.datafrk.postgres.PostgresDataContext;
+import io.github.kubesys.backend.datafrk.postgres.operators.CheckPostgresDatabase;
+import io.github.kubesys.backend.datafrk.postgres.operators.CheckPostgresTable;
+import io.github.kubesys.backend.datafrk.postgres.operators.CreatePostgresDatabase;
+import io.github.kubesys.backend.datafrk.postgres.operators.CreatePostgresTableBuilder;
+import io.github.kubesys.backend.datafrk.postgres.operators.DropPostgresDatabase;
+import io.github.kubesys.backend.datafrk.postgres.operators.DropPostgresTable;
+import io.github.kubesys.backend.datafrk.postgres.operators.InsertPostgresDataBuilder;
+import io.github.kubesys.backend.datafrk.postgres.operators.QueryPostgresDataBuilder;
+import io.github.kubesys.backend.datafrk.postgres.operators.RemovePostgresDataBuilder;
+import io.github.kubesys.backend.datafrk.postgres.operators.UpdatePostgresDataBuilder;
 /**
  * @author wuheng@iscas.ac.cn
  * @since 2.0.1
@@ -68,17 +79,17 @@ public class SQLMapperClient {
 		DEF_POSTGRES_VALUES.put("defaultDB", "postgres");
 		DEF_POSTGRES_VALUES.put("defaultUser", "postgres");
 		DEF_POSTGRES_VALUES.put("defaultPWD", "onceas");
-		DEF_POSTGRES_VALUES.put("classname", "io.github.kubesys.datafrk.postgres.PostgresDataContext");
-		DEF_POSTGRES_VALUES.put("tableBuilder", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresTableBuilder");
-		DEF_POSTGRES_VALUES.put("queryBuilder", "io.github.kubesys.datafrk.postgres.operators.QueryPostgresDataBuilder");
-		DEF_POSTGRES_VALUES.put("checkDatabase", "io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase");
-		DEF_POSTGRES_VALUES.put("createDatabase", "io.github.kubesys.datafrk.postgres.operators.CreatePostgresDatabase");
-		DEF_POSTGRES_VALUES.put("dropDatabase", "io.github.kubesys.datafrk.postgres.operators.DropPostgresDatabase");
-		DEF_POSTGRES_VALUES.put("checkTable", "io.github.kubesys.datafrk.postgres.operators.CheckPostgresTable");
-		DEF_POSTGRES_VALUES.put("dropTable", "io.github.kubesys.datafrk.postgres.operators.DropPostgresTable");
-		DEF_POSTGRES_VALUES.put("insertObject", "io.github.kubesys.datafrk.postgres.operators.InsertPostgresDataBuilder");
-		DEF_POSTGRES_VALUES.put("updateObject", "io.github.kubesys.datafrk.postgres.operators.UpdatePostgresDataBuilder");
-		DEF_POSTGRES_VALUES.put("deleteObject", "io.github.kubesys.datafrk.postgres.operators.RemovePostgresDataBuilder");
+		DEF_POSTGRES_VALUES.put("classname", PostgresDataContext.class.getName());
+		DEF_POSTGRES_VALUES.put("tableBuilder", CreatePostgresTableBuilder.class.getName());
+		DEF_POSTGRES_VALUES.put("queryBuilder", QueryPostgresDataBuilder.class.getName());
+		DEF_POSTGRES_VALUES.put("checkDatabase", CheckPostgresDatabase.class.getName());
+		DEF_POSTGRES_VALUES.put("createDatabase", CreatePostgresDatabase.class.getName());
+		DEF_POSTGRES_VALUES.put("dropDatabase", DropPostgresDatabase.class.getName());
+		DEF_POSTGRES_VALUES.put("checkTable", CheckPostgresTable.class.getName());
+		DEF_POSTGRES_VALUES.put("dropTable", DropPostgresTable.class.getName());
+		DEF_POSTGRES_VALUES.put("insertObject", InsertPostgresDataBuilder.class.getName());
+		DEF_POSTGRES_VALUES.put("updateObject", UpdatePostgresDataBuilder.class.getName());
+		DEF_POSTGRES_VALUES.put("deleteObject", RemovePostgresDataBuilder.class.getName());
 		
 		DEF_MYSQL_VALUES.put("defaultDriver", "com.mysql.cj.jdbc.Driver");
 		DEF_MYSQL_VALUES.put("defaultPrefix", "jdbc:mysql://");
