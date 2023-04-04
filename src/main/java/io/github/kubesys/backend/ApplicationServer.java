@@ -6,6 +6,9 @@ package io.github.kubesys.backend;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.annotation.ComponentScan;
 
+import io.github.kubesys.backend.clients.KubeMirrorClient;
+import io.github.kubesys.backend.clients.SQLMapperClient;
+import io.github.kubesys.client.KubernetesClient;
 import io.github.kubesys.devfrk.spring.HttpServer;
 
 
@@ -30,8 +33,15 @@ public class ApplicationServer extends HttpServer  {
 	 * program entry point
 	 * 
 	 * @param args default is null
+	 * @throws Exception 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
+		KubernetesClient fromKube = new KubernetesClient();
+		SQLMapperClient toSQL = new SQLMapperClient();
+		
+		KubeMirrorClient kubeMirror = new KubeMirrorClient(fromKube, toSQL);
+		kubeMirror.start();
+		
 		SpringApplication.run(ApplicationServer.class, args);
 	}
 

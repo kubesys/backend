@@ -8,7 +8,8 @@ import java.util.Properties;
 
 import org.postgresql.Driver;
 
-import io.github.kubesys.datafrk.druid.DruidDataContext;
+import io.github.kubesys.backend.datafrk.druid.DruidDataContext;
+import io.github.kubesys.backend.datafrk.postgres.PostgresDataContext;
 
 /**
  * @author wuheng@iscas.ac.cn

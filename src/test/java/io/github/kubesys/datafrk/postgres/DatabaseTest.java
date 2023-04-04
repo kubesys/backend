@@ -6,15 +6,15 @@ package io.github.kubesys.datafrk.postgres;
 
 import java.util.Collection;
 
-import io.github.kubesys.datafrk.core.DataContext;
-import io.github.kubesys.datafrk.core.Database;
-import io.github.kubesys.datafrk.core.Table;
-import io.github.kubesys.datafrk.postgres.operators.CheckPostgresDatabase;
-import io.github.kubesys.datafrk.postgres.operators.CheckPostgresTable;
-import io.github.kubesys.datafrk.postgres.operators.CreatePostgresDatabase;
-import io.github.kubesys.datafrk.postgres.operators.CreatePostgresTableBuilder;
-import io.github.kubesys.datafrk.postgres.operators.DropPostgresDatabase;
-import io.github.kubesys.datafrk.postgres.operators.DropPostgresTable;
+import io.github.kubesys.backend.datafrk.DataContext;
+import io.github.kubesys.backend.datafrk.Database;
+import io.github.kubesys.backend.datafrk.Table;
+import io.github.kubesys.backend.datafrk.postgres.operators.CheckPostgresDatabase;
+import io.github.kubesys.backend.datafrk.postgres.operators.CheckPostgresTable;
+import io.github.kubesys.backend.datafrk.postgres.operators.CreatePostgresDatabase;
+import io.github.kubesys.backend.datafrk.postgres.operators.CreatePostgresTableBuilder;
+import io.github.kubesys.backend.datafrk.postgres.operators.DropPostgresDatabase;
+import io.github.kubesys.backend.datafrk.postgres.operators.DropPostgresTable;
 
 /**
  * @author wuheng@iscas.ac.cn

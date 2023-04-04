@@ -4,7 +4,7 @@
  */
 package io.github.kubesys.datafrk.postgres;
 
-import io.github.kubesys.datafrk.postgres.operators.UpdatePostgresDataBuilder;
+import io.github.kubesys.backend.datafrk.postgres.operators.UpdatePostgresDataBuilder;
 
 /**
  * @author wuheng@iscas.ac.cn

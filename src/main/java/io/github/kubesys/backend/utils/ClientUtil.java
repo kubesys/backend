@@ -10,7 +10,7 @@ import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.github.kubesys.backend.SQLMapper;
+import io.github.kubesys.backend.clients.SQLMapperClient;
 import io.github.kubesys.client.KubernetesCRDWacther;
 import io.github.kubesys.client.KubernetesClient;
 
@@ -115,16 +115,16 @@ public class ClientUtil {
 	***********************************************/
 	
    
-   protected static SQLMapper sqlMapper = null;
+   protected static SQLMapperClient sqlMapper = null;
 	
 	/**
 	 * @return                           sqlClient
 	 */
-	public static synchronized SQLMapper sqlMapper() {
+	public static synchronized SQLMapperClient sqlMapper() {
 		
 		try {
 			if (sqlMapper == null) {
-				sqlMapper =  new SQLMapper();
+				sqlMapper =  new SQLMapperClient();
 			}
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());

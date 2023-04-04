@@ -4,10 +4,10 @@
  */
 package io.github.kubesys.datafrk.postgres;
 
-import io.github.kubesys.datafrk.core.items.ItemTypeBuilder;
-import io.github.kubesys.datafrk.core.operators.CreateTable;
-import io.github.kubesys.datafrk.core.operators.CreateTableBuilder;
-import io.github.kubesys.datafrk.postgres.operators.CreatePostgresTableBuilder;
+import io.github.kubesys.backend.datafrk.items.ItemTypeBuilder;
+import io.github.kubesys.backend.datafrk.operators.CreateTable;
+import io.github.kubesys.backend.datafrk.operators.CreateTableBuilder;
+import io.github.kubesys.backend.datafrk.postgres.operators.CreatePostgresTableBuilder;
 
 /**
  * @author wuheng@iscas.ac.cn

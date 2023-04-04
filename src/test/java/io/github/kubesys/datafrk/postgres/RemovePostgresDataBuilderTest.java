@@ -4,7 +4,7 @@
  */
 package io.github.kubesys.datafrk.postgres;
 
-import io.github.kubesys.datafrk.postgres.operators.RemovePostgresDataBuilder;
+import io.github.kubesys.backend.datafrk.postgres.operators.RemovePostgresDataBuilder;
 
 /**
  * @author wuheng@iscas.ac.cn

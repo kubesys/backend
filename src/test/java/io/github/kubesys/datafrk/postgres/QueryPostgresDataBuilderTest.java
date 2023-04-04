@@ -7,9 +7,9 @@ package io.github.kubesys.datafrk.postgres;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import io.github.kubesys.datafrk.core.DataContext;
-import io.github.kubesys.datafrk.core.operators.QueryData;
-import io.github.kubesys.datafrk.postgres.operators.QueryPostgresDataBuilder;
+import io.github.kubesys.backend.datafrk.DataContext;
+import io.github.kubesys.backend.datafrk.operators.QueryData;
+import io.github.kubesys.backend.datafrk.postgres.operators.QueryPostgresDataBuilder;
 
 /**
  * @author wuheng@iscas.ac.cn

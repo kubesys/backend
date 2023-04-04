@@ -9,8 +9,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.github.kubesys.backend.rbac.Role;
-import io.github.kubesys.backend.rbac.User;
 import io.github.kubesys.backend.utils.ClientUtil;
 import io.github.kubesys.backend.utils.KubeUtil;
 import io.github.kubesys.backend.utils.StringUtil;
@@ -209,4 +207,118 @@ public class UserService extends AbstractHttpHandler {
 		return spec.get("role").asText();
 	}
 	
+	/**
+	 * @author wuheng@iscas.ac.cn
+	 * @since 2.0.4
+	 *
+	 */
+	public static class Role {
+
+		protected String name;
+
+		protected Rule[] rules;
+		
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public Rule[] getRules() {
+			return rules;
+		}
+
+		public void setRules(Rule[] rules) {
+			this.rules = rules;
+		}
+
+	}
+	
+	public static class Rule {
+
+		protected String[] apiGroups;
+		
+		protected String[] verbs;
+		
+		protected String[] resources;
+
+		public String[] getApiGroups() {
+			return apiGroups;
+		}
+
+		public void setApiGroups(String[] apiGroups) {
+			this.apiGroups = apiGroups;
+		}
+
+		public String[] getVerbs() {
+			return verbs;
+		}
+
+		public void setVerbs(String[] verbs) {
+			this.verbs = verbs;
+		}
+
+		public String[] getResources() {
+			return resources;
+		}
+
+		public void setResources(String[] resources) {
+			this.resources = resources;
+		}
+	}
+	
+	public static class User {
+
+		protected String name;
+
+		protected String password;
+
+		protected String role;
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public String getPassword() {
+			return password;
+		}
+
+		public void setPassword(String password) {
+			this.password = password;
+		}
+
+		public String getRole() {
+			return role;
+		}
+
+		public void setRole(String role) {
+			this.role = role;
+		}
+
+		public JsonNode toJson() {
+			ObjectNode userJson = new ObjectMapper().createObjectNode();
+			
+			userJson.put("apiVersion", "doslab.io/v1");
+			userJson.put("kind", "User");
+			ObjectNode meta = new ObjectMapper().createObjectNode();
+			{
+				meta.put("name", name);
+				meta.put("namespace", "default");
+			}
+			userJson.set("metadata", meta);
+
+			ObjectNode spec = new ObjectMapper().createObjectNode();
+			spec.put("password", password);
+			spec.put("role", role);
+			userJson.set("spec", spec);
+			
+			return userJson;
+		}
+	}
 }
