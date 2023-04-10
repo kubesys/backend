@@ -27,7 +27,7 @@ import io.github.kubesys.client.core.KubernetesRuleBase;
  * This class is used for extracting data from Kubernetes,
  * and store it to database.
  */
-public class KubeMirrorClient {
+public class KubeMirrorClient implements Runnable {
 
 	/**
 	 * m_logger
@@ -69,7 +69,7 @@ public class KubeMirrorClient {
 			this.toSQL = toSQL;
 			
 			KubePinger kubePinger = new KubePinger(fromKube);
-			kubePinger.start();
+			new Thread(kubePinger).start();
 		} catch (Exception ex) {
 			m_logger.severe(ex.toString());
 			System.exit(1);
@@ -77,13 +77,9 @@ public class KubeMirrorClient {
 	}
 
 
-	/**
-	 * @throws Exception                    exception
-	 */
-	public void start() throws Exception {
-		fromKuberbetes().toDatabase();
-	}
 	
+
+
 	/**
 	 * @param  kind                         kind
 	 * @throws Exception                    exception
@@ -385,7 +381,7 @@ public class KubeMirrorClient {
 		return sdf.format(new Date());
 	}
 	
-	public static class KubePinger extends Thread {
+	public static class KubePinger implements Runnable {
 
 		public static final Logger m_logger = Logger.getLogger(KubePinger.class.getName());
 		
@@ -417,6 +413,16 @@ public class KubeMirrorClient {
 							.get("metadata").get("name");
 			Thread.sleep(ms);
 			m_logger.info("finish availability check...");
+		}
+	}
+
+	@Override
+	public void run() {
+		try {
+			fromKuberbetes().toDatabase();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 }

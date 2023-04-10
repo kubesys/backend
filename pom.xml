@@ -24,6 +24,16 @@
 			<groupId>io.github.kubesys</groupId>
 			<artifactId>httpfrk-springboot</artifactId>
 			<version>${spring.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>logback-classic</artifactId>
+					<groupId>ch.qos.logback</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>logback-core</artifactId>
+					<groupId>ch.qos.logback</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.alibaba/druid -->
 		<dependency>
@@ -38,13 +48,13 @@
 			<version>${postgre.version}</version>
 		</dependency>
 	</dependencies>
-	<repositories>
+	<!--<repositories>
 		<repository>
 			<id>pdos-repos</id>
 			<name>PDOS Releases</name>
 			<url>http://120.46.180.58:31016/repository/maven-public/</url>
 		</repository>
-	</repositories>
+	</repositories>-->
 	<build>
 		<plugins>
 			<plugin>
