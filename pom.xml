@@ -4,26 +4,37 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.kubesys</groupId>
 	<artifactId>backend</artifactId>
-	<version>1.1.0</version>
+	<version>1.2.0</version>
 	<packaging>jar</packaging>
 	<name>backend</name>
 	<description>backend</description>
 	<properties>
-		<kubehttp.version>2.2.2</kubehttp.version>
-		<spring.version>2.1.0</spring.version>
-		<druid.version>1.2.16</druid.version>
-		<postgre.version>42.6.0</postgre.version>
+		<kubemirror.version>0.1.1</kubemirror.version>
+		<kubespring.version>2.2.1.7</kubespring.version>
+		<keycloak.version>21.1.1</keycloak.version>
 	</properties>
 	<dependencies>
+		<!-- https://mvnrepository.com/artifact/org.keycloak/keycloak-spring-boot-starter -->
+		<dependency>
+			<groupId>org.keycloak</groupId>
+			<artifactId>keycloak-spring-boot-starter</artifactId>
+			<version>${keycloak.version}</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.keycloak/keycloak-admin-client -->
+		<dependency>
+			<groupId>org.keycloak</groupId>
+			<artifactId>keycloak-admin-client</artifactId>
+			<version>${keycloak.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>io.github.kubesys</groupId>
-			<artifactId>kubernetes-client</artifactId>
-			<version>${kubehttp.version}</version>
+			<artifactId>mirror</artifactId>
+			<version>${kubemirror.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.github.kubesys</groupId>
 			<artifactId>httpfrk-springboot</artifactId>
-			<version>${spring.version}</version>
+			<version>${kubespring.version}</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>logback-classic</artifactId>
@@ -35,26 +46,14 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.alibaba/druid -->
-		<dependency>
-			<groupId>com.alibaba</groupId>
-			<artifactId>druid</artifactId>
-			<version>${druid.version}</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<version>${postgre.version}</version>
-		</dependency>
 	</dependencies>
-	<!--<repositories>
+	<repositories>
 		<repository>
 			<id>pdos-repos</id>
 			<name>PDOS Releases</name>
-			<url>http://120.46.180.58:31016/repository/maven-public/</url>
+			<url>http://139.9.165.93:31016/repository/maven-public/</url>
 		</repository>
-	</repositories>-->
+	</repositories>
 	<build>
 		<plugins>
 			<plugin>

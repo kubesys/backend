@@ -4,25 +4,25 @@
 package io.github.kubesys.backend.services;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.github.kubesys.backend.utils.ClientUtil;
-import io.github.kubesys.backend.utils.FrontendUtils;
-import io.github.kubesys.backend.utils.StringUtil;
-import io.github.kubesys.client.KubernetesConstants;
+import io.github.kubesys.client.KubernetesClient;
 import io.github.kubesys.devfrk.spring.cores.AbstractHttpHandler;
 import io.github.kubesys.devfrk.tools.annotations.ServiceDefinition;
+import io.github.kubesys.mirror.cores.Env;
+import io.github.kubesys.mirror.cores.clients.PostgresClient;
+import io.github.kubesys.mirror.cores.clients.PostgresSQLBuilder;
+import io.github.kubesys.mirror.cores.utils.KubeUtil;
+import io.github.kubesys.mirror.cores.utils.SQLUtil;
 
 /**
- * @author wuheng@iscas.ac.cn
- * @since 2.0.3
+ * @author   wuheng@iscas.ac.cn
+ * @version  1.2.0
+ * @since    2023/06/23
  *
  * according to Kubernetes' API specification, providing the following APIs
  * 
@@ -46,6 +46,18 @@ import io.github.kubesys.devfrk.tools.annotations.ServiceDefinition;
 @ServiceDefinition
 public class KubeService extends AbstractHttpHandler {
 
+	protected final KubernetesClient kubeClient;
+	
+	protected final PostgresClient postgresClient;
+	
+	
+	public KubeService() {
+		super();
+		this.kubeClient = new KubernetesClient(
+				System.getenv(Env.ENV_KUBE_URL), 
+				System.getenv(Env.ENV_KUBE_TOKEN));
+		this.postgresClient = new PostgresClient();
+	}
 	
 	/*************************************************************************
 	 * 
@@ -55,54 +67,48 @@ public class KubeService extends AbstractHttpHandler {
 	 * 
 	 **************************************************************************/
 	
+
 	/**
 	 * see KubernetesClient.createResource
 	 * 
-	 * @param token                    token
-	 * @param json                     json
+	 * @param data                     json
 	 * @return                         json
 	 * @throws Exception               exception
 	 */
 	public JsonNode createResource(
-			String token,
-			JsonNode json)
+			JsonNode data)
 			throws Exception {
 
-		return ClientUtil.getClient(token).createResource(json);
+		return kubeClient.createResource(data);
 	}
 
 	/**
 	 * see KubernetesClient.updateResource
 	 * 
-	 * @param token                    token
-	 * @param json                     json
+	 * @param data                     json
 	 * @return                         json
 	 * @throws Exception               exception
 	 */
 	public JsonNode updateResource(
-			String token,
-			JsonNode json)
+			JsonNode data)
 			throws Exception {
-		
-		return ClientUtil.getClient(token).updateResource(json);
+		return kubeClient.updateResource(data);
 	}
 
 	/**
 	 * see KubernetesClient.createResource and KubernetesClient.updateResource
 	 * 
-	 * @param token                    token
-	 * @param json                     json
+	 * @param data                     json
 	 * @return                         json
 	 * @throws Exception               exception
 	 */
 	public JsonNode createOrUpdateResource(
-			String token,
-			JsonNode json)
+			JsonNode data)
 			throws Exception {
 		try {
-			return ClientUtil.getClient(token).createResource(json);
+			return kubeClient.createResource(data);
 		} catch (Exception e) {
-			return ClientUtil.getClient(token).updateResource(json);
+			return kubeClient.updateResource(data);
 		}
 	}
 
@@ -110,61 +116,49 @@ public class KubeService extends AbstractHttpHandler {
 	 * see KubernetesClient.deleteResource
 	 * 
 	 * @param token                   token
-	 * @param kind                    kind
+	 * @param fullkind                kind
 	 * @param namespace               namespace
 	 * @param name                    name
 	 * @return json                   json
 	 * @throws Exception              exception
 	 */
 	public JsonNode deleteResource(
-			String token,
-			String kind,
-			String namespace,
-			String name) 
+			String fullkind,
+			String name,
+			String namespace) 
 			throws Exception {
 
-		return ClientUtil.getClient(token).deleteResource(kind, namespace, name);
+		return kubeClient.deleteResource(fullkind, namespace, name);
 	}
 
 	/**
 	 * see KubernetesClient.getResource
 	 * 
-	 * @param token                   token
-	 * @param kind                    kind
+	 * @param fullkind                fullkind
 	 * @param namespace               namespace
 	 * @param name                    name
+	 * @param region                  region
 	 * @return json                   json
 	 * @throws Exception              exception
 	 */
-	public JsonNode getResource(
-			String token,
-			String kind,
+	public Object getResource(
+			String fullkind,
+			String name,
 			String namespace,
-			String name) throws Exception {
+			String region) throws Exception {
 		
-		try {
-			return ClientUtil.getClient(token).getResource(kind, namespace, name.toLowerCase());
-		} catch (Exception ex) {
-			if ((kind.equals("Template") || kind.equals("doslab.io.Template")) && name.endsWith("create")) {
-				return getTemplate(token, name); 
-			}
-			
-			if (kind.equals("Frontend") || kind.equals("doslab.io.Frontend")) {
-				int idx = name.indexOf("-");
-				if (idx != -1) {
-					String key = name.substring(0, idx);
-					String json = FrontendUtils.getJson(key, name);
-					if (json != null) {
-						JsonNode result = new ObjectMapper().readTree(json);
-						ClientUtil.getClient(token).createResource(result);
-						FrontendUtils.writeAsYaml(name, result);
-						return result;
-					}
-				}
-			}
-			
-			throw new Exception("获取创建资源失败, 命名空间" + namespace + "类型为" + kind + "的资源" + name +"不存在. ");
-		}
+		String plural = kubeClient.getKindDesc().get(fullkind).get("plural").asText();
+		String table = SQLUtil.table(plural);
+		
+		String group = KubeUtil.getGroup(fullkind);
+		Map<String, String> map = new HashMap<>();
+		map.put("name", name);
+		map.put("namespace", namespace);
+		map.put("apigroup", group);
+		map.put("region", region);
+		
+		String sql = new PostgresSQLBuilder().getSQL(table, map);
+		return postgresClient.get(sql);
 	}
 
 	
@@ -180,208 +174,39 @@ public class KubeService extends AbstractHttpHandler {
 	 * equal to see KubernetesClient.listResources
 	 * 
 	 * @param token                   token
-	 * @param kind                    kind
+	 * @param fullkind                    kind
 	 * @param namespace               namespace
 	 * @return json                   json
 	 * @throws Exception              exception
 	 */
 	public JsonNode listResources(
-			String token,
-			String kind,
+			String fullkind,
+			String region,
 			int limit,
 			int page,
 			Map<String, String> labels)
 			throws Exception {
-
-			try {
-				// check permissions
-				ClientUtil.getClient(token).listResources(kind, KubernetesConstants.VALUE_ALL_NAMESPACES, null, null, 1, null);
-			} catch (Exception ex) {
-				// sql connection may timeout, retry it
-				throw new Exception("没有权限, 无法操作资源类型 " + kind + ". ");
-			}
-			
-			return ClientUtil.sqlMapper().query(getTable(token, getFullKind(token, kind)), 
-											getKind(kind), 
-											limit, page, 
-											(labels != null) ? labels : new HashMap<>());
-	}
-
-	
-	/**
-	 * how many items.
-	 * 
-	 * @param token                    token
-	 * @param data                     data
-	 * @return                         json
-	 * @throws Exception               exception
-	 */
-	public JsonNode queryResourceCount (
-			String token,
-			JsonNode data)
-			throws Exception {
-			
-		String fullKind = getFullKind(token, data.get("link").asText());
-		return ClientUtil.sqlMapper().queryCount(getTable(token, fullKind),
-						data.get("tag").asText(), data.get("value").asText());
-	}
-	
-	/**
-	 * return Map<key, display value> for comobox
-	 * 
-	 * @param token                     token
-	 * @param data                      data
-	 * @return json                     json
-	 * @throws Exception                exception
-	 */
-	public JsonNode queryResourceValue (
-			String token,
-			JsonNode data)
-			throws Exception {
 		
-		if (data.get("kind").asText().contains("ConfigMap")) {
-			return ClientUtil.getClient(token).getResource(
-					data.get("kind").asText(), 
-					data.get("namespace").asText(), 
-					data.get("name").asText()).get("data");
-		} else {
-			
-			String fullKind = getFullKind(token, data.get("kind").asText());
-			ArrayNode arrayNode = ClientUtil.sqlMapper().queryAll(
-					getTable(token, fullKind), data.get("field").asText());
-			
-			ObjectNode json = new ObjectMapper().createObjectNode();
-			for (int i = 0; i < arrayNode.size(); i++) {
-				json.put(arrayNode.get(i).asText(), arrayNode.get(i).asText());
-			}
-			return json;
-		}
-	}
-	
-	
-	/*************************************************************************
-	 * 
-	 * 
-	 *      Handling myself
-	 * 
-	 * 
-	 **************************************************************************/
-	
-	
-	/*************************************************************************
-	 * 
-	 * 
-	 *       Common
-	 * 
-	 * 
-	 **************************************************************************/
-	/**
-	 * @param token                      token
-	 * @return json                      json
-	 * @throws Exception                 exception
-	 */
-	protected JsonNode getComponents(
-			 String token) throws Exception {
+		JsonNode kindDesc = kubeClient.getKindDesc().get(fullkind);
 		
-		Set<String> set = new HashSet<>();
+		String plural = kindDesc.get("plural").asText();
+		String table = SQLUtil.table(plural);
 		
-		JsonNode navi = ClientUtil.getClient(token).getResource(
-								"Frontend", "default", "routes-admin")
-								.get("spec").get("routes");
-		
-		for (int i = 0; i < navi.size(); i++) {
-			JsonNode menu = navi.get(i).get("children");
-			for (int j = 0; j < navi.size(); j++) {
-				try {
-					JsonNode list = menu.get(j).get("children");
-					for (int k = 0; k < list.size(); k++) {
-						set.add(list.get(k).get("name").asText());
-					}
-				} catch (Exception ex) {
-					//
-				}
-			}
-		}
-		return new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(set));
-	}
-	
-	
-	/**
-	 * @param token                    token
-	 * @param name                     name
-	 * @return                         json
-	 * @exception                      exception 
-	 */
-	protected JsonNode getTemplate(String token, String name) throws Exception {
-		
-		String userKind = getUserInputKind(name);
-		
-		String realKind = getKind(userKind);
-				
-		String fullKind = getFullKind(token, userKind);
-			
-		ObjectNode node = new ObjectMapper().createObjectNode();
-		
-		node.put("apiVersion", getApiVersion(token, fullKind));
-		node.put("kind", realKind);
-		
+		ObjectNode json = new ObjectMapper().createObjectNode();
+		json.put("apiVersion", kindDesc.get("apiVersion").asText());
+		json.put("kind", kindDesc.get("kind").asText() + "List");
 		ObjectNode meta = new ObjectMapper().createObjectNode();
-		meta.put("name", realKind.toLowerCase() + "-" + StringUtil.getRandomString(6));
+		long totalCount = postgresClient.count(new PostgresSQLBuilder().countSQL(table, labels));
+		meta.put("name", "get-" + plural);
+		meta.put("totalCount", totalCount);
+		meta.put("currentPage", page);
+		meta.put("totalPage", (totalCount%limit == 0) ? totalCount/limit : totalCount/limit + 1);
+		meta.put("itemsPerPage", limit);
+		meta.put("conditions", new ObjectMapper().writeValueAsString(labels));
+		json.set("metadata", meta);
+		json.set("items",postgresClient.list(new PostgresSQLBuilder().listSQL(table, labels, page, limit)));
 		
-		node.set("metadata", meta);
-		return node;
-		
+		return json;
 	}
 
-	/**
-	 * @param token                 token
-	 * @param userInputKind         userInputKind
-	 * @return                      kind
-	 * @throws Exception            exception
-	 */
-	protected String getFullKind(String token, String userInputKind) throws Exception {
-		return userInputKind.indexOf(".") == -1 ? ClientUtil.getClient(token)
-				.getAnalyzer().getConvertor().getRuleBase().getFullKind(userInputKind) : userInputKind;
-	}
-
-	/**
-	 * @param userInputKind         kind
-	 * @return                      kind
-	 */
-	protected String getKind(String userInputKind) {
-		int rdx = userInputKind.lastIndexOf(".");
-		return (rdx == -1) ? userInputKind : userInputKind.substring(rdx + 1);
-	}
-
-	/**
-	 * @param name                  name
-	 * @return                      kind
-	 */
-	protected String getUserInputKind(String name) {
-		return name.substring(0, name.indexOf("-"));
-	}
-	
-	/**
-	 * @param token token
-	 * @param kind  kind
-	 * @return      apiVersion
-	 * @throws Exception    exception
-	 */
-	protected String getApiVersion(
-			String token,
-			String kind) throws Exception {
-		
-		JsonNode mapper = ClientUtil.getClient(token).getFullKinds();
-		return mapper.has(kind) ? mapper.get(kind).get("apiVersion").asText() : "";
-	}
-	
-	/**
-	 * @param token                  token
-	 * @param kind                   kind
-	 * @return                       table
-	 * @throws Exception             exception
-	 */
-	protected String getTable(String token, String kind) throws Exception {
-		return ClientUtil.getClient(token).getAnalyzer().getConvertor().getRuleBase().getName(kind);
-	}
 }

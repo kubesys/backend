@@ -1,7 +1,7 @@
 /**
  * Copyright (2020, ) Institute of Software, Chinese Academy of Sciences
  */
-package com.github.kubesys.operators;
+package io.github.kubesys.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
