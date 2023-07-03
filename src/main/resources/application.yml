@@ -5,6 +5,29 @@ server:
     context-path: /kubesys
     
 spring:
+  datasource:
+    auth:
+      url: jdbc:postgresql://139.9.165.93:30306/kubeauth
+      username: postgres
+      password: onceas
+      driverClassName: org.postgresql.Driver
+    kube:
+      url: jdbc:postgresql://139.9.165.93:30306/kubestack
+      username: postgres
+      password: onceas
+      driverClassName: org.postgresql.Driver
+  jpa:
+    hibernate:
+      generate_ddl: true
+      ddl_auto: update
+      dialect: org.hibernate.dialect.PostgreSQLDialect
+    database: postgresql
+    
+  jackson:
+    time-zone: GMT+8
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+  
+swagger:
+  enabled: true

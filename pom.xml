@@ -10,7 +10,7 @@
 	<description>backend</description>
 	<properties>
 		<kubemirror.version>0.1.1</kubemirror.version>
-		<kubespring.version>2.2.1.8</kubespring.version>
+		<kubespring.version>2.2.1.9</kubespring.version>
 		<keycloak.version>21.1.1</keycloak.version>
 	</properties>
 	<dependencies>
@@ -26,6 +26,12 @@
 			<artifactId>keycloak-admin-client</artifactId>
 			<version>${keycloak.version}</version>
 		</dependency>-->
+		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-jpa -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+			<version>3.1.1</version>
+		</dependency>
 		<dependency>
 			<groupId>io.github.kubesys</groupId>
 			<artifactId>mirror</artifactId>
