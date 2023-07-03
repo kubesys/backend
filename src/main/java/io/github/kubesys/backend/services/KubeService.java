@@ -22,35 +22,40 @@ import io.github.kubesys.mirror.cores.utils.SQLUtil;
 /**
  * @author   wuheng@iscas.ac.cn
  * @version  1.2.0
- * @since    2023/06/23
+ * @since    2023/06/28
  *
- * according to Kubernetes' API specification, providing the following APIs
+ * 提供以下服务
  * 
- * - invoking Kubernetes
+ * - Kubernetes
  *    - CreateResource
- *    - BindResource
  *    - UpdateResource
  *    - UpdateResourceStatus
- *    - GetResource
  *    - DeleteResource
- *    - WatchResource
- *    - WatchResources
- * - invoking Database
+ * - Database
+ *    - GetResource
  *    - ListResources
- *    - queryResourceCount
- *    - queryResourceValue
- * - online handling
+ * - Metadata
  *    - getMetadata
+ *    
  */
 
 @ServiceDefinition
 public class KubeService extends AbstractHttpHandler {
 
+	/**
+	 * Kubernetes客户端
+	 */
 	protected final KubernetesClient kubeClient;
 	
+	/**
+	 * 数据库客户端
+	 */
 	protected final PostgresClient postgresClient;
 	
 	
+	/**
+	 * 初始化
+	 */
 	public KubeService() {
 		super();
 		this.kubeClient = new KubernetesClient(
@@ -68,8 +73,12 @@ public class KubeService extends AbstractHttpHandler {
 	 **************************************************************************/
 	
 
+	public JsonNode getMeta() throws Exception {
+		return kubeClient.getKindDesc();
+	}
+	
 	/**
-	 * see KubernetesClient.createResource
+	 * 创建资源
 	 * 
 	 * @param data                     json
 	 * @return                         json

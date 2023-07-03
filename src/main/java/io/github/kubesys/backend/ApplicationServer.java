@@ -10,13 +10,12 @@ import io.github.kubesys.devfrk.spring.HttpServer;
 
 
 /**
- * @author wuheng@otcaix.iscas.ac.cn
- * @author xuyuanjia2017@otcaix.iscas.ac.cn
- * @since 2019.11.16
+ * @author  wuheng@iscas.ac.cn
+ * @version 1.2.0
+ * @since   2023.06.28
  * 
  *        <p>
- *        The {@code ApplicationServer} class is used for starting web
- *        applications. Please configure
+ *        启动backend服务，可以进一步对以下进行配置
  * 
  *        <li><code>src/main/resources/application.yml<code>
  *        <li><code>src/main/resources/log4j.properties<code>
@@ -25,12 +24,12 @@ import io.github.kubesys.devfrk.spring.HttpServer;
 
 @ComponentScan(basePackages = { "io.github.kubesys.backend.services" })
 public class ApplicationServer extends HttpServer  {
-
+	
 	/**
-	 * program entry point
+	 * 启动Backend服务
 	 * 
-	 * @param args default is null
-	 * @throws Exception 
+	 * @param args 启动参数，默认是空
+	 * @throws Exception 初始化启动失败报错即退出
 	 */
 	public static void main(String[] args) throws Exception {
 		SpringApplication.run(ApplicationServer.class, args);
