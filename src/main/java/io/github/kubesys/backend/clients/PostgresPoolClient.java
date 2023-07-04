@@ -5,6 +5,7 @@ package io.github.kubesys.backend.clients;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -12,26 +13,28 @@ import java.util.Set;
 import org.jboss.logging.Logger;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.github.kubesys.backend.clients.PostgresPoolClient.SQLObject.CompareCondition;
-import io.github.kubesys.backend.clients.PostgresPoolClient.SQLObject.EqualCondition;
-import io.github.kubesys.backend.clients.PostgresPoolClient.SQLObject.LikeCondition;
 import io.github.kubesys.backend.models.auth.AuthBaseModel;
 import io.github.kubesys.devfrk.spring.utils.ClassUtils;
 import io.github.kubesys.devfrk.spring.utils.JSONUtils;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import jakarta.persistence.Table;
 import jakarta.transaction.Transactional;
 
 /**
- * @author  wuheng@iscas.ac.cn
+ * @author wuheng@iscas.ac.cn
  * @version 1.2.0
- * @since   2023/07/24
+ * @since 2023/07/24
  * 
  */
 @Component
@@ -42,7 +45,7 @@ public class PostgresPoolClient {
 	private static final Map<String, String> tables = new HashMap<>();
 
 	static {
-		Set<Class<?>> classes = ClassUtils.scan(new String[] {AuthBaseModel.class.getPackageName()});
+		Set<Class<?>> classes = ClassUtils.scan(new String[] { AuthBaseModel.class.getPackageName() });
 		for (Class<?> clazz : classes) {
 			Table table = clazz.getAnnotation(Table.class);
 			if (table != null) {
@@ -60,20 +63,19 @@ public class PostgresPoolClient {
 		compares.put(3, "<");
 		compares.put(4, "<=");
 	}
-	
+
 	@PersistenceContext(unitName = "authEntityManager")
-    private EntityManager authEntityManager;
+	private EntityManager authEntityManager;
 
-    @PersistenceContext(unitName = "kubeEntityManager")
-    private EntityManager kubeEntityManager;
+	@PersistenceContext(unitName = "kubeEntityManager")
+	private EntityManager kubeEntityManager;
 
-    EntityManager getEntityManager(String cls) {
-    	if (tables.containsKey(cls)) {
-    		return authEntityManager;
-    	}
-    	return kubeEntityManager;
-    }
-    
+	EntityManager getEntityManager(String cls) {
+		if (tables.containsKey(cls)) {
+			return authEntityManager;
+		}
+		return kubeEntityManager;
+	}
 
 	@Transactional
 	public void createObject(String cls, JsonNode data) throws Exception {
@@ -89,18 +91,15 @@ public class PostgresPoolClient {
 		getEntityManager(cls).merge(treeToValue);
 	}
 
-
 	@Transactional
 	public void removeObject(String cls, JsonNode data) throws Exception {
 		Object treeToValue = new ObjectMapper().treeToValue(data, Class.forName(cls));
 		getEntityManager(cls).remove(treeToValue);
 	}
 
-	@Transactional
 	public JsonNode getObject(String cls, SQLObject data) throws Exception {
 		return listObjects(cls, data, 1, 10).get("data").get(0);
 	}
-
 
 	@Transactional
 	public long countObjects(String cls, SQLObject data) throws Exception {
@@ -113,7 +112,6 @@ public class PostgresPoolClient {
 
 	}
 
-	@Transactional
 	public JsonNode listObjects(String cls, SQLObject data, int page, int number) throws Exception {
 
 		SQLBuilder builder = new SQLBuilder();
@@ -127,7 +125,7 @@ public class PostgresPoolClient {
 		// LIMIT
 		builder.addLimit(page, number);
 
-		List<Object> list = execQueySql(cls, builder.getValue(), buildItems(data));
+		List<Object> list = execQuerySql(cls, builder.getValue(), buildItems(data));
 
 		// RESULT
 		ObjectNode result = new ObjectMapper().createObjectNode();
@@ -139,31 +137,49 @@ public class PostgresPoolClient {
 
 	private StringBuilder buildItems(SQLObject data) {
 		StringBuilder sb = new StringBuilder();
-		sb.append(data.distinct ? " DISTINCT " : "");
-		if (data.getTargets() != null) {
-			for (String item : data.getTargets()) {
-				sb.append(item).append(",");
-			}
-			sb.deleteCharAt(sb.length() - 1);
-		} else {
-			sb.append("*");
-		}
+		sb.append(data.distinct ? " DISTINCT " : "").append(data.getTargets());
 		return sb;
 	}
 
-	@SuppressWarnings("unchecked")
-	private List<Object> execQueySql(String cls, String sql, StringBuilder sb) {
-		String query = sql.replace("#TEMP#", sb.toString());
-		m_logger.info("Query:" + query);
-		return getEntityManager(cls).createNativeQuery(query).getResultList();
+	private List<Object> execQuerySql(String cls, String sql, StringBuilder sb) {
+		EntityManager entityManager = getEntityManager(cls);
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			String query = sql.replace("#TEMP#", sb.toString());
+			m_logger.info("Query:" + query);
+			transaction.commit();
+			return entityManager.createNativeQuery(query).getResultList();
+		} catch (Exception e) {
+			m_logger.warn("SQL执行失败" + e);
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
+		
+		return null;
 	}
 
 	private long execCountSql(String cls, String sql) {
-		String count = sql.replace("#TEMP#", "COUNT(*)");
-		m_logger.info("Count:" + count);
-		return (long) getEntityManager(cls).createNativeQuery(count).getSingleResult();
+		EntityManager entityManager = getEntityManager(cls);
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			String count = sql.replace("#TEMP#", "COUNT(*)");
+			m_logger.info("Count:" + count);
+			transaction.commit();
+			return (long) entityManager.createNativeQuery(count).getSingleResult();
+		} catch (Exception e) {
+			m_logger.warn("SQL执行失败" + e);
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
+		
+		return -1;
 	}
-
 
 	public static class SQLBuilder {
 
@@ -182,29 +198,34 @@ public class PostgresPoolClient {
 		public SQLBuilder buildConditions(SQLObject data) {
 
 			boolean first = true;
-			
+
 			if (data.getEqualConds() != null) {
-				for (EqualCondition sc : data.getEqualConds()) {
-					sqlBuilder.append(first ? " WHERE " : " AND ").append(sc.getName()).append(" = '")
-							.append(sc.getValue()).append("'");
+				
+				Iterator<Map.Entry<String, JsonNode>> fieldsIterator = data.getEqualConds().fields();
+				while (fieldsIterator.hasNext()) {
+					Map.Entry<String, JsonNode> entry = fieldsIterator.next();
+					String fieldName = entry.getKey();
+					String fieldValue = entry.getValue().asText();
+					sqlBuilder.append(first ? " WHERE " : " AND ")
+									.append(fieldName).append(" = '")
+									.append(fieldValue).append("'");
 					first = false;
 				}
-			}
-			
-			if (data.getLikeConds() != null) {
-				for (LikeCondition sc : data.getLikeConds()) {
-					sqlBuilder.append(first ? " WHERE " : " AND ").append(sc.getName()).append(" LIKE '%")
-							.append(sc.getValue()).append("%'");
-					first = false;
-				}
+				
 			}
 
-			if (data.getCompareConds() != null) {
-				for (CompareCondition rc : data.getCompareConds()) {
-					sqlBuilder.append(first ? " WHERE " : " AND ").append(rc.getName()).append(compares.get(rc.type))
-							.append("'").append(rc.getValue()).append("'");
+			if (data.getLikeConds() != null) {
+				Iterator<Map.Entry<String, JsonNode>> fieldsIterator = data.getLikeConds().fields();
+				while (fieldsIterator.hasNext()) {
+					Map.Entry<String, JsonNode> entry = fieldsIterator.next();
+					String fieldName = entry.getKey();
+					String fieldValue = entry.getValue().asText();
+					sqlBuilder.append(first ? " WHERE " : " AND ")
+							.append(fieldName).append(" LIKE '%")
+							.append(fieldValue).append("%'");
 					first = false;
 				}
+
 			}
 
 			return this;
@@ -220,62 +241,61 @@ public class PostgresPoolClient {
 
 		protected SQLObject sqlObj = new SQLObject();
 
-		public SQLObjectBuilder addTarget(String str) {
-			List<String> targets = sqlObj.getTargets() == null ? new ArrayList<>() : sqlObj.getTargets();
-			targets.add(str);
+		public SQLObjectBuilder addTarget(String targets) {
 			sqlObj.setTargets(targets);
 			return this;
 		}
 
-		public SQLObjectBuilder addEqualCondition(String key, String val) {
-			List<EqualCondition> lcs = sqlObj.getEqualConds() == null ? new ArrayList<>() : sqlObj.getEqualConds();
-			lcs.add(new LikeCondition(key, val));
-			sqlObj.setEqualConds(lcs);
+		public SQLObjectBuilder addEqualCondition(JsonNode json) {
+			sqlObj.setEqualConds(json);
 			return this;
 		}
-		
-		public SQLObjectBuilder addLikeCondition(String key, String val) {
-			List<LikeCondition> lcs = sqlObj.getLikeConds() == null ? new ArrayList<>() : sqlObj.getLikeConds();
-			lcs.add(new LikeCondition(key, val));
-			sqlObj.setLikeConds(lcs);
+
+		public SQLObjectBuilder addLikeCondition(JsonNode json) {
+			sqlObj.setLikeConds(json);
 			return this;
 		}
-		
+
 		public SQLObjectBuilder addEqualCondition(String key, Object val) {
-			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>() : sqlObj.getCompareConds();
+			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>()
+					: sqlObj.getCompareConds();
 			ccs.add(new CompareCondition(key, val, 0));
 			sqlObj.setCompareConds(ccs);
 			return this;
 		}
-		
+
 		public SQLObjectBuilder addGreatThanCondition(String key, Object val) {
-			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>() : sqlObj.getCompareConds();
+			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>()
+					: sqlObj.getCompareConds();
 			ccs.add(new CompareCondition(key, val, 1));
 			sqlObj.setCompareConds(ccs);
 			return this;
 		}
-		
+
 		public SQLObjectBuilder addGreatThanAndEqualCondition(String key, Object val) {
-			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>() : sqlObj.getCompareConds();
+			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>()
+					: sqlObj.getCompareConds();
 			ccs.add(new CompareCondition(key, val, 2));
 			sqlObj.setCompareConds(ccs);
 			return this;
 		}
-		
+
 		public SQLObjectBuilder addLessThanCondition(String key, Object val) {
-			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>() : sqlObj.getCompareConds();
+			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>()
+					: sqlObj.getCompareConds();
 			ccs.add(new CompareCondition(key, val, 3));
 			sqlObj.setCompareConds(ccs);
 			return this;
 		}
-		
+
 		public SQLObjectBuilder addLessThanAndEqualCondition(String key, Object val) {
-			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>() : sqlObj.getCompareConds();
+			List<CompareCondition> ccs = sqlObj.getCompareConds() == null ? new ArrayList<>()
+					: sqlObj.getCompareConds();
 			ccs.add(new CompareCondition(key, val, 4));
 			sqlObj.setCompareConds(ccs);
 			return this;
 		}
-		
+
 		public SQLObject build() {
 			return sqlObj;
 		}
@@ -291,20 +311,19 @@ public class PostgresPoolClient {
 		 * 对于 select a,b,c from table，targets表示a,b,c 如果为null，则表示*
 		 * https://www.w3school.com.cn/sql/sql_syntax.asp
 		 */
-		private List<String> targets;
+		private String targets = "*";
 
 		/**
 		 * SQL语法的where条件，只对String类型有效 如 select * from table where a = '%Value%'
 		 * https://www.w3school.com.cn/sql/sql_syntax.asp
 		 */
-		private List<EqualCondition> equalConds;
-		
+		private JsonNode equalConds;
+
 		/**
 		 * SQL语法的where条件，只对String类型有效 如 select * from table where a = '%Value%'
 		 * https://www.w3school.com.cn/sql/sql_syntax.asp
 		 */
-		private List<LikeCondition> likeConds;
-		
+		private JsonNode likeConds;
 
 		/**
 		 * SQL语法的where条件，只对String、long、int和boolan类型有效 比大小，如0是等于，1是大于，2是大于等于，3是小于，4是小于等于
@@ -317,10 +336,30 @@ public class PostgresPoolClient {
 		 */
 		private SortCondition sortConds;
 
-		/**
-		 * 如来自 湖南 的考生有30万人，如果查湖南，则涉及湖南的 数据行数有30万行，但如果只需要1行，则设置为true 是否去重
-		 * https://www.w3school.com.cn/sql/sql_syntax.asp
-		 */
+		public SQLObject() {
+			super();
+		}
+		
+		public SQLObject(boolean equals, JsonNode json) {
+			super();
+			if (equals) {
+				this.equalConds = json;
+			} else {
+				this.likeConds = json;
+			}
+		}
+		
+		public SQLObject(String targets, JsonNode equalConds, JsonNode likeConds, List<CompareCondition> compareConds,
+				SortCondition sortConds, boolean distinct) {
+			super();
+			this.targets = targets;
+			this.equalConds = equalConds;
+			this.likeConds = likeConds;
+			this.compareConds = compareConds;
+			this.sortConds = sortConds;
+			this.distinct = distinct;
+		}
+
 		private boolean distinct = false;
 
 		public boolean isDistinct() {
@@ -339,19 +378,27 @@ public class PostgresPoolClient {
 			this.sortConds = sortConds;
 		}
 
-		public List<String> getTargets() {
+		public String getTargets() {
 			return targets;
 		}
 
-		public void setTargets(List<String> targets) {
+		public void setTargets(String targets) {
 			this.targets = targets;
 		}
 
-		public List<LikeCondition> getLikeConds() {
+		public JsonNode getEqualConds() {
+			return equalConds;
+		}
+
+		public void setEqualConds(JsonNode equalConds) {
+			this.equalConds = equalConds;
+		}
+
+		public JsonNode getLikeConds() {
 			return likeConds;
 		}
 
-		public void setLikeConds(List<LikeCondition> likeConds) {
+		public void setLikeConds(JsonNode likeConds) {
 			this.likeConds = likeConds;
 		}
 
@@ -363,63 +410,11 @@ public class PostgresPoolClient {
 			this.compareConds = compareConds;
 		}
 
-		
-		public List<EqualCondition> getEqualConds() {
-			return equalConds;
-		}
-
-		public void setEqualConds(List<EqualCondition> equalConds) {
-			this.equalConds = equalConds;
-		}
-
-
-		static class EqualCondition {
+		static class CompareCondition {
 
 			protected String name;
 
 			protected Object value;
-
-			public EqualCondition() {
-				super();
-			}
-
-			public EqualCondition(String name, Object value) {
-				super();
-				this.name = name;
-				this.value = value;
-			}
-
-			public String getName() {
-				return name;
-			}
-
-			public void setName(String name) {
-				this.name = name;
-			}
-
-			public Object getValue() {
-				return value;
-			}
-
-			public void setValue(Object value) {
-				this.value = value;
-			}
-
-		}
-		
-		static class LikeCondition extends EqualCondition {
-
-			public LikeCondition() {
-				super();
-			}
-
-			public LikeCondition(String name, Object value) {
-				super(name, value);
-			}
-
-		}
-
-		static class CompareCondition extends EqualCondition {
 
 			/**
 			 * 0, equal, 1 great, 2 great and equal, 3. less 4 less equal
@@ -431,7 +426,9 @@ public class PostgresPoolClient {
 			}
 
 			public CompareCondition(String name, Object value, int type) {
-				super(name, value);
+				super();
+				this.name = name;
+				this.value = value;
 				this.type = type;
 			}
 

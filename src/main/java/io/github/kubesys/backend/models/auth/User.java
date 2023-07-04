@@ -32,6 +32,14 @@ public class User extends AuthBaseModel   {
 	@Column(name = "role", length = 32)
     private String role;
 
+	
+	public User(String role, String name, String password) {
+		super();
+		this.role = role;
+		this.name = name;
+		this.password = password;
+	}
+
 	public String getName() {
 		return name;
 	}

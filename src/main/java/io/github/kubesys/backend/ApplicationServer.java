@@ -19,7 +19,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import io.github.kubesys.backend.models.auth.AuthBaseModel;
@@ -126,6 +128,18 @@ public class ApplicationServer extends HttpServer  {
 		entityManagerFactoryBean.setPersistenceProviderClass(HibernatePersistenceProvider.class);
 		entityManagerFactoryBean.afterPropertiesSet();
 		return entityManagerFactoryBean;
+    }
+    
+    @Bean(name = "kubeEntityManager")
+    public PlatformTransactionManager kubeTransactionManager(
+    		@Qualifier("kubeDataSource") DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+    
+    @Bean(name = "authEntityManager")
+    public PlatformTransactionManager authTransactionManager(
+    		@Qualifier("authDataSource") DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
     }
     
 }
