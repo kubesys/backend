@@ -1,7 +1,7 @@
 /**
  * Copyright (2023, ) Institute of Software, Chinese Academy of Sciences
  */
-package io.github.kubesys.backend.models;
+package io.github.kubesys.backend.models.auth;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -12,48 +12,48 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * @author wuheng@iscas.ac.cn
- * @since  0.1.0
- * @date   2023/05/22
+ * @author   wuheng@iscas.ac.cn
+ * @version  1.2.0
+ * @since    2023/07/04
  * 
  */
 @Entity
 @Table(name = "basic_user")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class User extends BaseModel   {
+public class User extends AuthBaseModel   {
 
 	@Id
 	@Column(name = "name", length = 32)
-    private Long name;
+    private String name;
 	
 	@Column(name = "password", length = 32)
-    private Long password;
+    private String password;
 
 	@Column(name = "role", length = 32)
-    private Long role;
+    private String role;
 
-	public Long getName() {
+	public String getName() {
 		return name;
 	}
 
-	public void setName(Long name) {
+	public void setName(String name) {
 		this.name = name;
 	}
 
-	public Long getPassword() {
+	public String getPassword() {
 		return password;
 	}
 
-	public void setPassword(Long password) {
+	public void setPassword(String password) {
 		this.password = password;
 	}
 
-	public Long getRole() {
+	public String getRole() {
 		return role;
 	}
 
-	public void setRole(Long role) {
+	public void setRole(String role) {
 		this.role = role;
 	}
-	
+
 }

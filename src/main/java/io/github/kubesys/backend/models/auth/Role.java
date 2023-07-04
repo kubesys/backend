@@ -1,7 +1,7 @@
 /**
  * Copyright (2023, ) Institute of Software, Chinese Academy of Sciences
  */
-package io.github.kubesys.backend.models;
+package io.github.kubesys.backend.models.auth;
 
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -17,18 +17,18 @@ import jakarta.persistence.Table;
 
 /**
  * @author wuheng@iscas.ac.cn
- * @since  0.1.0
- * @date   2023/05/22
+ * @version  1.2.0
+ * @since    2023/07/04
  * 
  */
 @Entity
 @Table(name = "basic_role")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Role extends BaseModel   {
+public class Role extends AuthBaseModel   {
 
 	@Id
 	@Column(name = "role", length = 32)
-    private Long role;
+    private String role;
 	
 	@JdbcTypeCode(SqlTypes.JSON)
 	@Column(name = "tokens", columnDefinition = "json")
@@ -38,11 +38,12 @@ public class Role extends BaseModel   {
 	@Column(name = "allows", columnDefinition = "json")
     private JsonNode allows;
 
-	public Long getRole() {
+
+	public String getRole() {
 		return role;
 	}
 
-	public void setRole(Long role) {
+	public void setRole(String role) {
 		this.role = role;
 	}
 

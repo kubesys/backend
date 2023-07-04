@@ -1,19 +1,15 @@
 /**
  * Copyright (2023, ) Institute of Software, Chinese Academy of Sciences
  */
-package io.github.kubesys.backend.services;
+package io.github.kubesys.backend.clients;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.jboss.logging.Logger;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
-import io.github.kubesys.devfrk.spring.cores.AbstractHttpHandler;
-import io.github.kubesys.devfrk.tools.annotations.ServiceDefinition;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
@@ -24,18 +20,18 @@ import jakarta.transaction.Transactional;
  * @date 2023/05/29
  * 
  */
-@ServiceDefinition
-public class CommonService extends AbstractHttpHandler {
+@Component
+public class PostgresPoolClient {
 
-	private static Logger m_logger = Logger.getLogger(CommonService.class);
+	private static Logger m_logger = Logger.getLogger(PostgresPoolClient.class);
 
 	private static final Map<String, String> tables = new HashMap<>();
 
 
-	@PersistenceContext(unitName = "authEntityManagerFactory")
+	@PersistenceContext(unitName = "authEntityManager")
     private EntityManager authEntityManager;
 
-    @PersistenceContext(unitName = "kubeEntityManagerFactory")
+    @PersistenceContext(unitName = "kubeEntityManager")
     private EntityManager kubeEntityManager;
 
 //	@Transactional

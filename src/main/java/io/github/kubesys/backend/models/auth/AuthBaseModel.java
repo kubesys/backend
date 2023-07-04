@@ -1,7 +1,7 @@
 /**
  * Copyright (2023, ) Institute of Software, Chinese Academy of Sciences
  */
-package io.github.kubesys.backend.models;
+package io.github.kubesys.backend.models.auth;
 
 import java.time.LocalDateTime;
 
@@ -21,7 +21,7 @@ import jakarta.persistence.MappedSuperclass;
  */
 @MappedSuperclass
 @JsonIgnoreProperties(ignoreUnknown = true)
-public abstract class BaseModel   {
+public abstract class AuthBaseModel   {
 
 	/**
 	 * 创建时间
