@@ -19,20 +19,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import io.github.kubesys.backend.models.auth.AuthBaseModel;
 import io.github.kubesys.backend.models.kube.KubeBaseModel;
 import io.github.kubesys.devfrk.spring.HttpServer;
-
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 /**
- * @author  wuheng@iscas.ac.cn
+ * @author wuheng@iscas.ac.cn
  * @version 1.2.0
- * @since   2023.06.28
+ * @since 2023.06.28
  * 
  *        <p>
  *        启动backend服务，可以进一步对以下进行配置
@@ -43,12 +42,12 @@ import io.github.kubesys.devfrk.spring.HttpServer;
  */
 
 @ComponentScan(basePackages = { "io.github.kubesys.backend.services", "io.github.kubesys.backend.clients" })
-@EntityScan(basePackages = { "io.github.kubesys.backend.models"})
-@EnableTransactionManagement 
+@EntityScan(basePackages = { "io.github.kubesys.backend.models" })
+@EnableTransactionManagement
 @EnableJpaRepositories
 @EnableConfigurationProperties(JpaProperties.class)
-public class ApplicationServer extends HttpServer  {
-	
+public class ApplicationServer extends HttpServer {
+
 	/**
 	 * 启动Backend服务
 	 * 
@@ -57,13 +56,12 @@ public class ApplicationServer extends HttpServer  {
 	 */
 	public static void main(String[] args) throws Exception {
 		SpringApplication.run(ApplicationServer.class, args);
-		
+
 	}
-	
+
 	/*******************************************************
 	 * 
-	 * 配置两个数据源，见application.yml
-	 * ChatGPT告诉我的，不要问我为啥？
+	 * 配置两个数据源，见application.yml ChatGPT告诉我的，不要问我为啥？
 	 * 
 	 ********************************************************/
 	/**
@@ -72,18 +70,18 @@ public class ApplicationServer extends HttpServer  {
 	 * @return JpaProperties
 	 */
 	@Bean(name = "jpa")
-    @ConfigurationProperties(prefix = "spring.jpa")
-    public JpaProperties jpaProperties() {
-        return new JpaProperties();
-    }
-	
+	@ConfigurationProperties(prefix = "spring.jpa")
+	public JpaProperties jpaProperties() {
+		return new JpaProperties();
+	}
+
 	@Bean(name = "jpaProperties")
-    public Properties hibernateProperties(@Qualifier("jpa") JpaProperties jpaProperties) {
-        Properties properties = new Properties();
-        properties.putAll(jpaProperties.getProperties());
-        return properties;
-    }
-	
+	public Properties hibernateProperties(@Qualifier("jpa") JpaProperties jpaProperties) {
+		Properties properties = new Properties();
+		properties.putAll(jpaProperties.getProperties());
+		return properties;
+	}
+
 	@Bean(name = "authDataSource")
 	@ConfigurationProperties(prefix = "spring.datasource.auth")
 	public DataSource authDataSource() {
@@ -95,51 +93,42 @@ public class ApplicationServer extends HttpServer  {
 	public DataSource kubeDataSource() {
 		return DataSourceBuilder.create().build();
 	}
-	
-	@Bean(name = "jpaSharedEM_entityManagerFactory")
-	@DependsOn({"jpaProperties", "authDataSource"})
-    public LocalContainerEntityManagerFactoryBean  authEntityManager(
-                    @Qualifier("authDataSource") DataSource dataSource,
-                    @Qualifier("jpaProperties") Properties properties) {
-        
-		LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = 
-							new LocalContainerEntityManagerFactoryBean();
+
+	@Bean(name = "authEntityManager")
+	@PersistenceContext(unitName = "authEntityManager")
+	@DependsOn({ "jpaProperties", "authDataSource" })
+	public EntityManager authEntityManager(@Qualifier("authDataSource") DataSource dataSource,
+			@Qualifier("jpaProperties") Properties properties) {
+
+		LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = new LocalContainerEntityManagerFactoryBean();
 		entityManagerFactoryBean.setDataSource(dataSource);
 		entityManagerFactoryBean.setPersistenceUnitName("authEntityManager");
 		entityManagerFactoryBean.setPackagesToScan(AuthBaseModel.class.getPackageName());
 		entityManagerFactoryBean.setJpaProperties(properties);
 		entityManagerFactoryBean.setPersistenceProviderClass(HibernatePersistenceProvider.class);
 		entityManagerFactoryBean.afterPropertiesSet();
-		return entityManagerFactoryBean;
-		
-    }
+		return entityManagerFactoryBean.getObject().createEntityManager();
 
-    @Bean(name = "kubeEntityManagerFactory")
-    @DependsOn({"jpaProperties", "kubeDataSource"})
-    public LocalContainerEntityManagerFactoryBean  kubeEntityManager(
-                      @Qualifier("kubeDataSource") DataSource dataSource,
-                      @Qualifier("jpaProperties") Properties properties) {
-    	LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = 
-    							new LocalContainerEntityManagerFactoryBean();
+	}
+
+	@Bean(name = "kubeEntityManager")
+	@PersistenceContext(unitName = "kubeEntityManager")
+	@DependsOn({ "jpaProperties", "kubeDataSource" })
+	public EntityManager kubeEntityManager(@Qualifier("kubeDataSource") DataSource dataSource,
+			@Qualifier("jpaProperties") Properties properties) {
+		LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = new LocalContainerEntityManagerFactoryBean();
 		entityManagerFactoryBean.setDataSource(dataSource);
 		entityManagerFactoryBean.setPersistenceUnitName("kubeEntityManager");
 		entityManagerFactoryBean.setPackagesToScan(KubeBaseModel.class.getPackageName());
 		entityManagerFactoryBean.setJpaProperties(properties);
 		entityManagerFactoryBean.setPersistenceProviderClass(HibernatePersistenceProvider.class);
 		entityManagerFactoryBean.afterPropertiesSet();
-		return entityManagerFactoryBean;
-    }
-    
-    @Bean(name = "kubeEntityManager")
-    public PlatformTransactionManager kubeTransactionManager(
-    		@Qualifier("kubeDataSource") DataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
-    }
-    
-    @Bean(name = "authEntityManager")
-    public PlatformTransactionManager authTransactionManager(
-    		@Qualifier("authDataSource") DataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
-    }
-    
+		return entityManagerFactoryBean.getObject().createEntityManager();
+	}
+	
+	@Bean(name = "jpaSharedEM_entityManagerFactory")
+	public void ignore() {
+		
+	}
+
 }

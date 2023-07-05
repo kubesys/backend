@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.jboss.logging.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -64,10 +65,12 @@ public class PostgresPoolClient {
 		compares.put(4, "<=");
 	}
 
-	@PersistenceContext(unitName = "authEntityManager")
+//	@PersistenceContext(unitName = "authEntityManager")
+	@Autowired
 	private EntityManager authEntityManager;
 
-	@PersistenceContext(unitName = "kubeEntityManager")
+//	@PersistenceContext(unitName = "kubeEntityManager")
+	@Autowired
 	private EntityManager kubeEntityManager;
 
 	EntityManager getEntityManager(String cls) {
