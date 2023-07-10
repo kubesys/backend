@@ -10,7 +10,7 @@
 	<description>backend</description>
 	<properties>
 		<kubemirror.version>0.1.1</kubemirror.version>
-		<kubespring.version>2.2.1.9</kubespring.version>
+		<kubespring.version>2.2.1.10</kubespring.version>
 		<keycloak.version>21.1.1</keycloak.version>
 	</properties>
 	<repositories>

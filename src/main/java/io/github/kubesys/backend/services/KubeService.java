@@ -73,7 +73,7 @@ public class KubeService extends AbstractHttpHandler {
 	 **************************************************************************/
 	
 
-	public JsonNode getMeta() throws Exception {
+	public JsonNode getMeta(String region) throws Exception {
 		return kubeClient.getKindDesc();
 	}
 	
@@ -85,6 +85,7 @@ public class KubeService extends AbstractHttpHandler {
 	 * @throws Exception               exception
 	 */
 	public JsonNode createResource(
+			String region,
 			JsonNode data)
 			throws Exception {
 
@@ -99,6 +100,7 @@ public class KubeService extends AbstractHttpHandler {
 	 * @throws Exception               exception
 	 */
 	public JsonNode updateResource(
+			String region,
 			JsonNode data)
 			throws Exception {
 		return kubeClient.updateResource(data);
@@ -112,6 +114,7 @@ public class KubeService extends AbstractHttpHandler {
 	 * @throws Exception               exception
 	 */
 	public JsonNode createOrUpdateResource(
+			String region,
 			JsonNode data)
 			throws Exception {
 		try {
@@ -134,7 +137,8 @@ public class KubeService extends AbstractHttpHandler {
 	public JsonNode deleteResource(
 			String fullkind,
 			String name,
-			String namespace) 
+			String namespace,
+			String region) 
 			throws Exception {
 
 		return kubeClient.deleteResource(fullkind, namespace, name);
@@ -190,10 +194,10 @@ public class KubeService extends AbstractHttpHandler {
 	 */
 	public JsonNode listResources(
 			String fullkind,
-			String region,
 			int limit,
 			int page,
-			Map<String, String> labels)
+			Map<String, String> labels,
+			String region)
 			throws Exception {
 		
 		JsonNode kindDesc = kubeClient.getKindDesc().get(fullkind);
@@ -214,7 +218,6 @@ public class KubeService extends AbstractHttpHandler {
 		meta.put("conditions", new ObjectMapper().writeValueAsString(labels));
 		json.set("metadata", meta);
 		json.set("items",postgresClient.list(new PostgresSQLBuilder().listSQL(table, labels, page, limit)));
-		
 		return json;
 	}
 
