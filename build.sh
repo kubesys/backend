@@ -14,7 +14,7 @@ MAVEN="maven:3.6.3-openjdk-11"
 ##  Source to Jar
 ##
 ###############################################
-docker run -it --net host --rm -v /root/.m2:/root/.m2 -v "$(pwd)":/usr/src/mymaven -w /usr/src/mymaven $MAVEN mvn clean install -Dmaven.test.skip
+docker run -it --net host --rm -v /root/.m2:/root/.m2 -v "$(pwd)":/usr/src/mymaven -w /usr/src/mymaven $MAVEN mvn clean package -Dmaven.test.skip spring-boot:repackage
 
 
 ###############################################
