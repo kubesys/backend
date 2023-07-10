@@ -37,8 +37,14 @@ import jakarta.transaction.Transactional;
 @Component
 public class PostgresPoolClient {
 
+	/**
+	 * 日志
+	 */
 	private static Logger m_logger = Logger.getLogger(PostgresPoolClient.class.getName());
 
+	/**
+	 * 数据表
+	 */
 	private static final Map<String, String> tables = new HashMap<>();
 
 	static {

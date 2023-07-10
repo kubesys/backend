@@ -6,7 +6,6 @@ package io.github.kubesys.backend;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.github.kubesys.backend.clients.PostgresPoolClient;
 import io.github.kubesys.backend.models.auth.Role;
