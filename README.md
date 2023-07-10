@@ -22,55 +22,90 @@ This project should work with the following components.
 - [frontend](https://github.com/kubesys/frontend)
 
 
-If these componets are not working, using ['kubeinit'](https://github.com/kubesys/kube-installer) tool.
-
-```
-kubeinst init-env
-kubeinst init-kube
-kubeinst 
-kubeinst init-backend
-kubeinst init-frontend
-````
-
-
 ## Authos
 
 - wuheng@iscas.ac.cn
+- xugang@iscas.ac.cn
 
-## Usage
+## API
 
-### Quick start for single cluster
+### 1. 登陆 /system/login
 
-```
-git clone https://github.com/kubesys/kube-backend.git
-bash run.sh
-```
-
-### Config as you want (optional)
+POST请求
 
 ```
-// both runtime-mirror and api-mapper
-jdbcUrl=jdbc:postgresql://localhost:5432/mydatabase // (postgres or mysql)
-jdbcUser=postgres   // optional, postgres is 'postgres', mysql is 'root'
-jdbcPassword=xxx // optional, default is 'onceas'
-jdbcDriver=org.postgresql.Driver //optional, default is 'org.postgresql.Driver'
-// both runtime-mirror and api-mapper
-kubeToken=xxx     // see project kubernetes-client-java
-kubeUrl=https://39.100.71.73:6443     // see project kubernetes-client-java
-// region
-kubeRegion=local
+{
+    "kind": "User",
+    "data": {
+        "name": "admin",
+        "password": "b25jZWFz"
+    }
+}
 ```
 
-## Architecture
+### 2. 登出 /system/logout
 
-If you have just a cluster, you should deploy all components in it. 
+POST请求
 
-![avatar](/docs/arch-single.png)
+Headers
+```
+authorization: bearer token (see response from login)
+user: see name in login
+```
 
-Otherwise, you need deploy ApiMapper, Database and MessageQueue together,
-and deploy a RuntimMirror component for each Kubernetes cluster.
+### 3. 创建 /kube/createResource
 
-![avatar](/docs/arch-mutiple.png)
+POST请求
+
+Headers
+```
+authorization: bearer token (see response from login)
+user: see name in login
+```
+
+Body (see k8s json)
+```
+{
+   "kind": ""
+   others:
+}
+```
+
+### 3. 更新 /kube/updateResource
+
+POST请求
+
+Headers
+```
+authorization: bearer token (see response from login)
+user: see name in login
+```
+
+Body (see k8s json)
+```
+{
+   "kind": ""
+   others:
+}
+```
+
+### 3. 更新 /kube/deleteResource
+
+POST请求
+
+Headers
+```
+authorization: bearer token (see response from login)
+user: see name in login
+```
+
+Body (see k8s json)
+```
+{
+   "kind": ""
+   others:
+}
+```
 
 ## Roadmap
 
