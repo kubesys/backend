@@ -26,7 +26,8 @@ docker run -it --net host --rm -v /root/.m2:/root/.m2 -v "$(pwd)":/usr/src/mymav
 mirror="backend"
 version=$(cat pom.xml | grep version | head -1 | awk -F">" '{print$2}' | awk -F"<" '{print$1}')
 
-\cp target/$mirror-$version.jar docker/kube-$mirror.jar
+cp target/$mirror-$version.jar docker/kube-$mirror.jar
+cp -r config docker/config
 
 repo="registry.cn-beijing.aliyuncs.com/dosproj"
 
