@@ -1,0 +1,46 @@
+---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata: 
+  name: "kube-backend"
+  namespace: "kube-system"
+  labels: 
+    name: "kube-backend"
+spec: 
+  replicas: 1
+  selector: 
+    matchLabels:
+      name: "kube-backend"
+  template: 
+    metadata: 
+      labels: 
+        name: "kube-backend"
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+      containers:
+      - name: "kube-backend"
+        image: "registry.cn-beijing.aliyuncs.com/dosproj/backend:v#version#"
+        imagePullPolicy: "IfNotPresent"
+        env:
+        - name: jdbcUrl
+          value: "#jdbcUrl#"
+        - name: jdbcUser
+          value: "#jdbcUser#"
+        - name: jdbcPwd
+          value: "#jdbcPwd#"
+        - name: jdbcDriver
+          value: "#jdbcDriver#"
+        - name: kubeUrl
+          value: "#kubeUrl#"
+        - name: kubeToken
+          value: "#kubeToken#"
+        - name: kubeRegion
+          value: "#kubeRegion#"
+        command: 
+        - "java"
+        - "-jar"
+        - "kube-backend.jar"
