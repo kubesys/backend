@@ -8,12 +8,12 @@ server:
 spring:
   datasource:
     auth:
-      jdbcUrl: jdbc:postgresql://139.9.165.93:30306/kubeauth
+      jdbcUrl: jdbc:postgresql://139.9.165.93:30306/kubeauth?useUnicode=true&characterEncoding=UTF8&connectTimeout=2000&socketTimeout=6000&autoReconnect=true&&serverTimezone=Asia/Shang
       username: postgres
       password: onceas
       driverClassName: org.postgresql.Driver
     kube:
-      jdbcUrl: jdbc:postgresql://139.9.165.93:30306/kubestack
+      jdbcUrl: jdbc:postgresql://139.9.165.93:30306/kubestack?useUnicode=true&characterEncoding=UTF8&connectTimeout=2000&socketTimeout=6000&autoReconnect=true&&serverTimezone=Asia/Shang
       username: postgres
       password: onceas
       driverClassName: org.postgresql.Driver
