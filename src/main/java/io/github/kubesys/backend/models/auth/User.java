@@ -31,8 +31,18 @@ public class User extends AuthBaseModel   {
 
 	@Column(name = "role", length = 32)
     private String role;
-
 	
+	@Column(name = "token", length = 256)
+    private String token;
+	
+	public User() {
+		super();
+	}
+	public User(String token) {
+		super();
+		this.token = token;
+	}
+
 	public User(String role, String name, String password) {
 		super();
 		this.role = role;
@@ -64,4 +74,11 @@ public class User extends AuthBaseModel   {
 		this.role = role;
 	}
 
+	public String getToken() {
+		return token;
+	}
+
+	public void setToken(String token) {
+		this.token = token;
+	}
 }

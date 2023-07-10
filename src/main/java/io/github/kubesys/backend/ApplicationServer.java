@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import io.github.kubesys.backend.models.auth.AuthBaseModel;
 import io.github.kubesys.backend.models.kube.KubeBaseModel;
 import io.github.kubesys.devfrk.spring.HttpServer;
+import io.github.kubesys.devfrk.spring.constants.BeanConstants;
+import io.github.kubesys.devfrk.spring.cores.HttpAuthingInterceptor;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -58,6 +60,11 @@ public class ApplicationServer extends HttpServer {
 		SpringApplication.run(ApplicationServer.class, args);
 
 	}
+	
+	@Bean(name = BeanConstants.AUTHING)
+	public HttpAuthingInterceptor interceptor() {
+		return new DefaultHttpAuthing();
+	}
 
 	/*******************************************************
 	 * 
@@ -66,6 +73,7 @@ public class ApplicationServer extends HttpServer {
 	 ********************************************************/
 	/**
 	 * 配置application.yml中spring.jpa
+	 * 注意：本框架必须配置jpa
 	 * 
 	 * @return JpaProperties
 	 */
@@ -75,6 +83,13 @@ public class ApplicationServer extends HttpServer {
 		return new JpaProperties();
 	}
 
+	/**
+	 * 将application.yml中spring.jpa转化为Properties
+	 * 注意：本框架必须配置jpa
+	 * 
+	 * @param jpaProperties   org.springframework.boot.autoconfigure.orm.jpa.JpaProperties
+	 * @return java.util.Properties
+	 */
 	@Bean(name = "jpaProperties")
 	public Properties hibernateProperties(@Qualifier("jpa") JpaProperties jpaProperties) {
 		Properties properties = new Properties();
@@ -82,22 +97,30 @@ public class ApplicationServer extends HttpServer {
 		return properties;
 	}
 
+	//-----------------------------------------------------------------------------------------
+	/**
+	 * 配置application.yml中spring.datasource.auth
+	 * 
+	 * @return DataSource
+	 */
 	@Bean(name = "authDataSource")
 	@ConfigurationProperties(prefix = "spring.datasource.auth")
 	public DataSource authDataSource() {
 		return DataSourceBuilder.create().build();
 	}
 
-	@Bean(name = "kubeDataSource")
-	@ConfigurationProperties(prefix = "spring.datasource.kube")
-	public DataSource kubeDataSource() {
-		return DataSourceBuilder.create().build();
-	}
-
+	/**
+	 * 创建相关的EntityManager，供SQL查询使用
+	 * 
+	 * @param dataSource
+	 * @param properties
+	 * @return
+	 */
 	@Bean(name = "authEntityManager")
 	@PersistenceContext(unitName = "authEntityManager")
 	@DependsOn({ "jpaProperties", "authDataSource" })
-	public EntityManager authEntityManager(@Qualifier("authDataSource") DataSource dataSource,
+	public EntityManager authEntityManager(
+			@Qualifier("authDataSource") DataSource dataSource,
 			@Qualifier("jpaProperties") Properties properties) {
 
 		LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = new LocalContainerEntityManagerFactoryBean();
@@ -110,7 +133,27 @@ public class ApplicationServer extends HttpServer {
 		return entityManagerFactoryBean.getObject().createEntityManager();
 
 	}
+	
+	//-----------------------------------------------------------------------------------------
+	/**
+	 * 配置application.yml中spring.datasource.kube
+	 * 
+	 * @return DataSource
+	 */
+	@Bean(name = "kubeDataSource")
+	@ConfigurationProperties(prefix = "spring.datasource.kube")
+	public DataSource kubeDataSource() {
+		return DataSourceBuilder.create().build();
+	}
 
+
+	/**
+	 * 创建相关的EntityManager，供SQL查询使用
+	 * 
+	 * @param dataSource
+	 * @param properties
+	 * @return
+	 */
 	@Bean(name = "kubeEntityManager")
 	@PersistenceContext(unitName = "kubeEntityManager")
 	@DependsOn({ "jpaProperties", "kubeDataSource" })
@@ -126,8 +169,10 @@ public class ApplicationServer extends HttpServer {
 		return entityManagerFactoryBean.getObject().createEntityManager();
 	}
 	
+	//-----------------------------------------------------------------------------------------
+	// 我认为这是一个Spring bug，不清楚为啥会创建jpaSharedEM_entityManagerFactory
 	@Bean(name = "jpaSharedEM_entityManagerFactory")
-	public void ignore() {
+	public void springCompatibility() {
 		
 	}
 

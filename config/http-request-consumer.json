@@ -2,7 +2,7 @@
 	"GET": "^/.*/(get|list|query|describe|retrieve|echo|diff).*",
 	"PUT": "^/.*/(update|modify|replace|change|resize|tune|revert|convert).*",
 	"DELETE": "^/.*/(delete|remove|eject|detach|unplug|unset).*",
-	"POST": "^/.*/(login|logout|add|create|new|generate|insert|clone|attach|plug|set|bind|solve).*",
+	"POST": "^/.*/(login|logout|add|create|new|generate|insert|clone|attach|plug|set|bind|solve|get|list|query|describe|retrieve|echo|diff).*",
 	"DOC": {
 		"name": "文档目录",
 		"values": {

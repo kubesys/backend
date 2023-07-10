@@ -9,12 +9,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
-import org.jboss.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -26,9 +25,6 @@ import io.github.kubesys.devfrk.spring.utils.ClassUtils;
 import io.github.kubesys.devfrk.spring.utils.JSONUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
 import jakarta.persistence.Table;
 import jakarta.transaction.Transactional;
 
@@ -41,7 +37,7 @@ import jakarta.transaction.Transactional;
 @Component
 public class PostgresPoolClient {
 
-	private static Logger m_logger = Logger.getLogger(PostgresPoolClient.class);
+	private static Logger m_logger = Logger.getLogger(PostgresPoolClient.class.getName());
 
 	private static final Map<String, String> tables = new HashMap<>();
 
@@ -65,11 +61,9 @@ public class PostgresPoolClient {
 		compares.put(4, "<=");
 	}
 
-//	@PersistenceContext(unitName = "authEntityManager")
 	@Autowired
 	private EntityManager authEntityManager;
 
-//	@PersistenceContext(unitName = "kubeEntityManager")
 	@Autowired
 	private EntityManager kubeEntityManager;
 
@@ -80,26 +74,84 @@ public class PostgresPoolClient {
 		return kubeEntityManager;
 	}
 
-	@Transactional
 	public void createObject(String cls, JsonNode data) throws Exception {
-		ObjectMapper objectMapper = new ObjectMapper();
-		objectMapper.registerModule(new JavaTimeModule());
-		Object treeToValue = objectMapper.treeToValue(data, Class.forName(cls));
-		getEntityManager(cls).persist(treeToValue);
+		
+		EntityManager entityManager = getEntityManager(cls);
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			ObjectMapper objectMapper = new ObjectMapper();
+			objectMapper.registerModule(new JavaTimeModule());
+			Object treeToValue = objectMapper.treeToValue(data, Class.forName(cls));
+			entityManager.persist(treeToValue);
+			transaction.commit();
+		} catch (Exception e) {
+			m_logger.warning("SQL执行失败" + e);
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
+		
 	}
 
-	@Transactional
 	public void updateObject(String cls, JsonNode data) throws Exception {
-		Object treeToValue = new ObjectMapper().treeToValue(data, Class.forName(cls));
-		getEntityManager(cls).merge(treeToValue);
+		
+		EntityManager entityManager = getEntityManager(cls);
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			Object treeToValue = new ObjectMapper().treeToValue(data, Class.forName(cls));
+			entityManager.merge(treeToValue);
+			transaction.commit();
+		} catch (Exception e) {
+			m_logger.warning("SQL执行失败" + e);
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
 	}
 
 	@Transactional
 	public void removeObject(String cls, JsonNode data) throws Exception {
-		Object treeToValue = new ObjectMapper().treeToValue(data, Class.forName(cls));
-		getEntityManager(cls).remove(treeToValue);
+		
+		EntityManager entityManager = getEntityManager(cls);
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			Object treeToValue = new ObjectMapper().treeToValue(data, Class.forName(cls));
+			entityManager.remove(treeToValue);
+			transaction.commit();
+		} catch (Exception e) {
+			m_logger.warning("SQL执行失败" + e);
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
+		
 	}
 
+	
+	public Object find(Class<?> cls, Object obj) throws Exception {
+		EntityManager entityManager = getEntityManager(cls.getName());
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			Object find = entityManager.find(cls, obj);
+			transaction.commit();
+			return find;
+		} catch (Exception e) {
+			m_logger.warning("SQL执行失败" + e);
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
+		return null;
+	}
+	
 	public JsonNode getObject(String cls, SQLObject data) throws Exception {
 		return listObjects(cls, data, 1, 10).get("data").get(0);
 	}
@@ -144,6 +196,7 @@ public class PostgresPoolClient {
 		return sb;
 	}
 
+	@SuppressWarnings("unchecked")
 	private List<Object> execQuerySql(String cls, String sql, StringBuilder sb) {
 		EntityManager entityManager = getEntityManager(cls);
 		EntityTransaction transaction = entityManager.getTransaction();
@@ -154,7 +207,7 @@ public class PostgresPoolClient {
 			transaction.commit();
 			return entityManager.createNativeQuery(query).getResultList();
 		} catch (Exception e) {
-			m_logger.warn("SQL执行失败" + e);
+			m_logger.warning("SQL执行失败" + e);
 		} finally {
 			if (transaction.isActive()) {
 				transaction.rollback();
@@ -174,7 +227,7 @@ public class PostgresPoolClient {
 			transaction.commit();
 			return (long) entityManager.createNativeQuery(count).getSingleResult();
 		} catch (Exception e) {
-			m_logger.warn("SQL执行失败" + e);
+			m_logger.warning("SQL执行失败" + e);
 		} finally {
 			if (transaction.isActive()) {
 				transaction.rollback();
@@ -341,6 +394,16 @@ public class PostgresPoolClient {
 
 		public SQLObject() {
 			super();
+		}
+		
+		public SQLObject(String targets, boolean equals, JsonNode json) {
+			super();
+			this.targets = targets;
+			if (equals) {
+				this.equalConds = json;
+			} else {
+				this.likeConds = json;
+			}
 		}
 		
 		public SQLObject(boolean equals, JsonNode json) {

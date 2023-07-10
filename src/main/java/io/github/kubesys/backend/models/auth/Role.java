@@ -38,6 +38,14 @@ public class Role extends AuthBaseModel   {
 	@Column(name = "allows", columnDefinition = "json")
     private JsonNode allows;
 
+	public Role() {
+		super();
+	}
+
+	public Role(String role) {
+		super();
+		this.role = role;
+	}
 
 	public String getRole() {
 		return role;
