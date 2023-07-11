@@ -25,6 +25,8 @@ spec:
       - name: "kube-backend"
         image: "registry.cn-beijing.aliyuncs.com/dosproj/backend:v#version#"
         imagePullPolicy: "IfNotPresent"
+        ports:
+        - containerPort: 30380
         env:
         - name: jdbcUrl
           value: "#jdbcUrl#"
@@ -44,3 +46,21 @@ spec:
         - "java"
         - "-jar"
         - "kube-backend.jar"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-backend
+  namespace: kube-system
+  labels: 
+    name: kube-backend
+spec:
+  type: NodePort
+  ports:
+  - port: 30308
+    protocol: TCP
+    targetPort: 30308
+    name: kube-backend-port
+    nodePort: 30308
+  selector:
+    name: kube-backend
