@@ -30,6 +30,11 @@ public class DefaultHttpAuthing implements HttpAuthingInterceptor  {
 	
 	@Override
 	public boolean check(AuthingModel auth, String type, String kind) {
+		// 说明注册的方法不需要kind或者fullkind，直接返回true
+		if (kind == null) {
+			return true;
+		}
+		
 		try {
 			User user = (User) postgresClient.find(User.class, auth.getUser());
 			if (!user.getToken().equals(auth.getToken())) {

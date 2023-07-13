@@ -6,15 +6,16 @@ package io.github.kubesys.backend.services;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.github.kubesys.client.KubernetesClient;
+import io.github.kubesys.backend.clients.KubernetesPoolClient;
+import io.github.kubesys.backend.clients.PostgresPoolClient;
 import io.github.kubesys.devfrk.spring.cores.AbstractHttpHandler;
 import io.github.kubesys.devfrk.tools.annotations.ServiceDefinition;
-import io.github.kubesys.mirror.cores.Env;
-import io.github.kubesys.mirror.cores.clients.PostgresClient;
 import io.github.kubesys.mirror.cores.clients.PostgresSQLBuilder;
 import io.github.kubesys.mirror.cores.utils.KubeUtil;
 import io.github.kubesys.mirror.cores.utils.SQLUtil;
@@ -45,24 +46,16 @@ public class KubeService extends AbstractHttpHandler {
 	/**
 	 * Kubernetes客户端
 	 */
-	protected final KubernetesClient kubeClient;
+	@Autowired
+	protected KubernetesPoolClient kubeClient;
 	
 	/**
 	 * 数据库客户端
 	 */
-	protected final PostgresClient postgresClient;
+	@Autowired
+	protected PostgresPoolClient postgresClient;
 	
 	
-	/**
-	 * 初始化
-	 */
-	public KubeService() {
-		super();
-		this.kubeClient = new KubernetesClient(
-				System.getenv(Env.ENV_KUBE_URL), 
-				System.getenv(Env.ENV_KUBE_TOKEN));
-		this.postgresClient = new PostgresClient();
-	}
 	
 	/*************************************************************************
 	 * 
@@ -74,7 +67,7 @@ public class KubeService extends AbstractHttpHandler {
 	
 
 	public JsonNode getMeta(String region) throws Exception {
-		return kubeClient.getKindDesc();
+		return kubeClient.getKubeClient(region).getKindDesc();
 	}
 	
 	/**
@@ -89,7 +82,7 @@ public class KubeService extends AbstractHttpHandler {
 			JsonNode data)
 			throws Exception {
 
-		return kubeClient.createResource(data);
+		return kubeClient.getKubeClient(region).createResource(data);
 	}
 
 	/**
@@ -103,7 +96,7 @@ public class KubeService extends AbstractHttpHandler {
 			String region,
 			JsonNode data)
 			throws Exception {
-		return kubeClient.updateResource(data);
+		return kubeClient.getKubeClient(region).updateResource(data);
 	}
 
 	/**
@@ -118,9 +111,9 @@ public class KubeService extends AbstractHttpHandler {
 			JsonNode data)
 			throws Exception {
 		try {
-			return kubeClient.createResource(data);
+			return kubeClient.getKubeClient(region).createResource(data);
 		} catch (Exception e) {
-			return kubeClient.updateResource(data);
+			return kubeClient.getKubeClient(region).updateResource(data);
 		}
 	}
 
@@ -141,7 +134,7 @@ public class KubeService extends AbstractHttpHandler {
 			String region) 
 			throws Exception {
 
-		return kubeClient.deleteResource(fullkind, namespace, name);
+		return kubeClient.getKubeClient(region).deleteResource(fullkind, namespace, name);
 	}
 
 	/**
@@ -160,7 +153,7 @@ public class KubeService extends AbstractHttpHandler {
 			String namespace,
 			String region) throws Exception {
 		
-		String plural = kubeClient.getKindDesc().get(fullkind).get("plural").asText();
+		String plural = kubeClient.getKubeClient(region).getKindDesc().get(fullkind).get("plural").asText();
 		String table = SQLUtil.table(plural);
 		
 		String group = KubeUtil.getGroup(fullkind);
@@ -171,7 +164,7 @@ public class KubeService extends AbstractHttpHandler {
 		map.put("region", region);
 		
 		String sql = new PostgresSQLBuilder().getSQL(table, map);
-		return postgresClient.get(sql);
+		return postgresClient.getObject(fullkind, sql);
 	}
 
 	
@@ -200,7 +193,7 @@ public class KubeService extends AbstractHttpHandler {
 			String region)
 			throws Exception {
 		
-		JsonNode kindDesc = kubeClient.getKindDesc().get(fullkind);
+		JsonNode kindDesc = kubeClient.getKubeClient(region).getKindDesc().get(fullkind);
 		
 		String plural = kindDesc.get("plural").asText();
 		String table = SQLUtil.table(plural);
@@ -209,7 +202,8 @@ public class KubeService extends AbstractHttpHandler {
 		json.put("apiVersion", kindDesc.get("apiVersion").asText());
 		json.put("kind", kindDesc.get("kind").asText() + "List");
 		ObjectNode meta = new ObjectMapper().createObjectNode();
-		long totalCount = postgresClient.count(new PostgresSQLBuilder().countSQL(table, labels));
+		long totalCount = postgresClient.countObjects(fullkind,
+				new PostgresSQLBuilder().countSQL(table, labels));
 		meta.put("name", "get-" + plural);
 		meta.put("totalCount", totalCount);
 		meta.put("currentPage", page);
@@ -217,7 +211,8 @@ public class KubeService extends AbstractHttpHandler {
 		meta.put("itemsPerPage", limit);
 		meta.put("conditions", new ObjectMapper().writeValueAsString(labels));
 		json.set("metadata", meta);
-		json.set("items",postgresClient.list(new PostgresSQLBuilder().listSQL(table, labels, page, limit)));
+		json.set("items",postgresClient.listObjects(fullkind,
+				new PostgresSQLBuilder().listSQL(table, labels, page, limit)));
 		return json;
 	}
 

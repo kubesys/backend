@@ -27,21 +27,6 @@ spec:
         imagePullPolicy: "IfNotPresent"
         ports:
         - containerPort: 30380
-        env:
-        - name: jdbcUrl
-          value: "#jdbcUrl#"
-        - name: jdbcUser
-          value: "#jdbcUser#"
-        - name: jdbcPwd
-          value: "#jdbcPwd#"
-        - name: jdbcDriver
-          value: "#jdbcDriver#"
-        - name: kubeUrl
-          value: "#kubeUrl#"
-        - name: kubeToken
-          value: "#kubeToken#"
-        - name: kubeRegion
-          value: "#kubeRegion#"
         command: 
         - "java"
         - "-jar"

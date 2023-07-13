@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,6 +26,8 @@ import io.github.kubesys.devfrk.spring.utils.ClassUtils;
 import io.github.kubesys.devfrk.spring.utils.JSONUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
 import jakarta.persistence.Table;
 import jakarta.transaction.Transactional;
 
@@ -173,6 +176,29 @@ public class PostgresPoolClient {
 
 	}
 
+	/**
+	 * @param sql        SQL
+	 * @return           查询结果
+	 */
+	public long countObjects(String cls, String sql) {
+		EntityManager entityManager = getEntityManager(cls);
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			Query query = entityManager.createNativeQuery(sql);
+			long singleResult = (long) query.getSingleResult();
+			transaction.commit();
+			return singleResult;
+		} catch (NoResultException ex) {
+			m_logger.warning("没有查询到任何结果");
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
+		return -1;
+	}
+	
 	public JsonNode listObjects(String cls, SQLObject data, int page, int number) throws Exception {
 
 		SQLBuilder builder = new SQLBuilder();
@@ -196,6 +222,30 @@ public class PostgresPoolClient {
 		return result;
 	}
 
+	/**
+	 * @param sql        SQL
+	 * @return           查询结果
+	 */
+	public JsonNode listObjects(String cls, String sql) {
+		EntityManager entityManager = getEntityManager(cls);
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			Query query = entityManager.createNativeQuery(sql);
+			List<?> mutipleResults = query.getResultList();
+			transaction.commit();
+			return new ObjectMapper().readTree(mutipleResults.toString());
+		} catch (JsonProcessingException e) {
+			m_logger.warning("结果转JSON失败" + e);
+		} catch (NoResultException ex) {
+			m_logger.warning("没有查询到任何结果" + ex);
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
+		return null;
+	}
 	private StringBuilder buildItems(SQLObject data) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(data.distinct ? " DISTINCT " : "").append(data.getTargets());
@@ -241,6 +291,31 @@ public class PostgresPoolClient {
 		}
 		
 		return -1;
+	}
+	
+	/**
+	 * @param sql        SQL
+	 * @return           查询结果
+	 */
+	public JsonNode getObject(String cls, String sql) {
+		EntityManager entityManager = getEntityManager(cls);
+		EntityTransaction transaction = entityManager.getTransaction();
+		try {
+			transaction.begin();
+			Query query = entityManager.createNativeQuery(sql);
+			Object singleResult = query.getSingleResult();
+			transaction.commit();
+			return new ObjectMapper().readTree(singleResult.toString());
+		} catch (JsonProcessingException e) {
+			m_logger.warning("结果转JSON失败" + e);
+		} catch (NoResultException ex) {
+			m_logger.warning("没有查询到任何结果" + ex);
+		} finally {
+			if (transaction.isActive()) {
+				transaction.rollback();
+			}
+		}
+		return null;
 	}
 
 	public static class SQLBuilder {
