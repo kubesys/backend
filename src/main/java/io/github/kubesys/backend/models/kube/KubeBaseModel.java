@@ -3,14 +3,8 @@
  */
 package io.github.kubesys.backend.models.kube;
 
-import java.time.LocalDateTime;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 
 /**
@@ -18,39 +12,14 @@ import jakarta.persistence.MappedSuperclass;
  * @version  1.2.0
  * @since    2023/07/04
  * 
+ * backend必须依赖https://github.com/kubesys/mirror项目预先启动
+ * mirror同步Kubernetes的所有数据，其中name为数据表名（kubectl api-resources）
+ * 
+ * 这个类的目的主要就是注册一个EntityManager，见ApplicationServer的@Bean(name = "kubeEntityManager")
  */
 @MappedSuperclass
 @JsonIgnoreProperties(ignoreUnknown = true)
-public abstract class KubeBaseModel   {
+public final class KubeBaseModel   {
 
-	/**
-	 * 创建时间
-	 */
-	@CreationTimestamp
-    @Column(name = "createdAt", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-	/**
-	 * 更新时间
-	 */
-	@UpdateTimestamp
-    @Column(name = "updatedAt", nullable = false)
-    private LocalDateTime updatedAt;
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
-	}
 
 }
