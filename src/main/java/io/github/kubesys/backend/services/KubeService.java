@@ -14,10 +14,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.kubesys.backend.clients.KubernetesPoolClient;
 import io.github.kubesys.backend.clients.PostgresPoolClient;
+import io.github.kubesys.client.utils.KubeUtil;
 import io.github.kubesys.devfrk.spring.cores.AbstractHttpHandler;
 import io.github.kubesys.devfrk.tools.annotations.ServiceDefinition;
-import io.github.kubesys.mirror.cores.clients.PostgresSQLBuilder;
-import io.github.kubesys.mirror.cores.utils.KubeUtil;
+import io.github.kubesys.mirror.cores.clients.builers.PostgresSQLBuilder;
 import io.github.kubesys.mirror.cores.utils.SQLUtil;
 
 /**

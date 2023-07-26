@@ -110,3 +110,7 @@ Body (see k8s json)
 ## Roadmap
 
 - 2.3.x: support single region
+
+## Others
+
+- ?useUnicode=true&characterEncoding=UTF8&connectTimeout=2000&socketTimeout=6000&autoReconnect=true&&serverTimezone=Asia/Shang
