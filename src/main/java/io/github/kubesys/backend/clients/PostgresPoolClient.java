@@ -48,7 +48,7 @@ public class PostgresPoolClient {
 	/**
 	 * 数据表
 	 */
-	private static final Map<String, String> tables = new HashMap<>();
+	public static final Map<String, String> tables = new HashMap<>();
 
 	static {
 		Set<Class<?>> classes = ClassUtils.scan(new String[] { AuthBaseModel.class.getPackageName() });

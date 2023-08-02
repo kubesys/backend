@@ -18,7 +18,7 @@ import io.github.kubesys.client.utils.KubeUtil;
 import io.github.kubesys.devfrk.spring.cores.AbstractHttpHandler;
 import io.github.kubesys.devfrk.tools.annotations.ServiceDefinition;
 import io.github.kubesys.mirror.cores.clients.builers.PostgresSQLBuilder;
-import io.github.kubesys.mirror.cores.utils.SQLUtil;
+import io.github.kubesys.mirror.utils.SQLUtil;
 
 /**
  * @author   wuheng@iscas.ac.cn
@@ -164,7 +164,14 @@ public class KubeService extends AbstractHttpHandler {
 		map.put("region", region);
 		
 		String sql = new PostgresSQLBuilder().getSQL(table, map);
-		return postgresClient.getObject(fullkind, sql);
+		try {
+			return postgresClient.getObject(fullkind, sql);
+		} catch (Exception ex) {
+			if (PostgresPoolClient.tables.containsKey(fullkind)) {
+				return new ObjectMapper().createObjectNode();
+			}
+			throw ex;
+		}
 	}
 
 	
@@ -211,8 +218,15 @@ public class KubeService extends AbstractHttpHandler {
 		meta.put("itemsPerPage", limit);
 		meta.put("conditions", new ObjectMapper().writeValueAsString(labels));
 		json.set("metadata", meta);
-		json.set("items",postgresClient.listObjects(fullkind,
+		try {
+			json.set("items",postgresClient.listObjects(fullkind,
 				new PostgresSQLBuilder().listSQL(table, labels, page, limit)));
+		} catch (Exception ex) {
+			if (PostgresPoolClient.tables.containsKey(fullkind)) {
+				return json;
+			}
+			throw ex;
+		}
 		return json;
 	}
 

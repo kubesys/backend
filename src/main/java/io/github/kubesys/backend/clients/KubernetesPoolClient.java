@@ -7,7 +7,6 @@ package io.github.kubesys.backend.clients;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jboss.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -22,8 +21,6 @@ import io.github.kubesys.client.KubernetesClient;
  */
 @Component
 public class KubernetesPoolClient {
-
-	private static Logger m_logger = Logger.getLogger(KubernetesPoolClient.class);
 
 	private static Map<String, KubernetesClient> kubeClients = new HashMap<>();
 	

@@ -15,7 +15,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
 /**
@@ -24,7 +23,6 @@ import jakarta.persistence.Id;
  * @since   2023/06/21
  * 
  */
-@Entity
 @JsonIgnoreProperties(ignoreUnknown = true)
 //@Description(type = "数据表模型", value = "#NAME#")
 public class CommonModel   {
