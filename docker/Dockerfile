@@ -6,3 +6,5 @@ ADD kube-backend.jar /home/kube-backend/
 ADD config/ /home/kube-backend/config
 
 WORKDIR /home/kube-backend
+
+ENTRYPOINT ["java", "-jar","kube-backend.jar"]

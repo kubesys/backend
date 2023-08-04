@@ -9,7 +9,7 @@
 	<name>backend</name>
 	<description>backend</description>
 	<properties>
-		<kubemirror.version>0.2.3</kubemirror.version>
+		<kubemirror.version>0.2.4</kubemirror.version>
 		<kubespring.version>2.2.2</kubespring.version>
 		<keycloak.version>21.1.1</keycloak.version>
 	</properties>
